@@ -237,3 +237,24 @@ app.get("/getproducts", (req, res) => {
 app.listen(3001, () => {
   console.log("Running backend server on port 3001");
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
