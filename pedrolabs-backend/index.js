@@ -25,7 +25,7 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   user: "root",
   host: "localhost",
-  password: "Admin@1998", // Replace with your MySQL password
+  password: "Admin123", // Replace with your MySQL password
   database: "pedrolabsdb", // Replace with your database name
 });
 
