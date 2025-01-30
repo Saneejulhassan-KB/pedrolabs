@@ -122,8 +122,27 @@ function Header({ userName, handleLogout }) {
             <div className="icon-div">
               <i
                 className="fa-solid fa-cart-shopping"
-                onClick={handleNavItemClick} // Collapse navbar when cart icon is clicked
-              ></i>
+                onClick={handleNavItemClick}
+                style={{ position: "relative" }}
+              >
+                {/* Cart Icon */}
+
+                <span
+                  className="cart-count"
+                  style={{
+                    position: "absolute",
+                    top: "-10px",
+                    right: "-10px",
+                    backgroundColor: "red",
+                    color: "white",
+                    borderRadius: "50%",
+                    padding: "5px 10px",
+                    fontSize: "14px",
+                  }}
+                >
+                  1
+                </span>
+              </i>
               {userName ? (
                 <button
                   style={{

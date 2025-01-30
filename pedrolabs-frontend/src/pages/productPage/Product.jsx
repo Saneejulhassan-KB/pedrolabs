@@ -5,14 +5,30 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "./Product.css";
 import axios from "axios";
 import Preloader from "../../Components/Preloader/Preloader";
+import Header from "../../Components/Header";
 
 function Product() {
   const [quantities, setQuantities] = useState({});
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState({}); // Track added quantities
+  const [userName, setUserName] = useState(""); // userName state
   const baseURL = "http://localhost:3001";
 
   //
+
+  useEffect(() => {
+    // Retrieve the user's name from session storage
+    const name = sessionStorage.getItem("userName");
+    if (name) {
+      setUserName(name);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("userName"); // Clear session storage
+    setUserName(""); // Reset the userName state
+    window.location.href = "/authnew"; // Redirect to the login page
+  };
 
   // Fetch products
   const fetchProducts = () => {
@@ -30,7 +46,6 @@ function Product() {
   useEffect(() => {
     fetchProducts();
   }, []);
-
 
   // loading
   const [loading, setLoading] = useState(true);
@@ -60,7 +75,7 @@ function Product() {
 
   const handleAddToCart = (product) => {
     const quantity = quantities[product.id] || 1;
-    
+
     setCart((prev) => ({
       ...prev,
       [product.id]: (prev[product.id] || 0) + quantity,
@@ -69,13 +84,15 @@ function Product() {
     alert(`${quantity} ${product.name}(s) added to the cart!`);
   };
 
-      
-  
-    // Calculate total items in cart
-    const totalItemsInCart = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+  // Calculate total items in cart
+  const totalItemsInCart = Object.values(cart).reduce(
+    (sum, qty) => sum + qty,
+    0
+  );
 
   return (
     <div className="product-page container my-5">
+      <Header userName={userName} handleLogout={handleLogout} />
       <h1>Total Items in Cart: {totalItemsInCart}</h1>
 
       <Row xs={1} sm={2} md={3} className="g-4">
