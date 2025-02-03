@@ -55,10 +55,12 @@ function Authnew() {
 
     // **Send Registration Request**
     axios
-      .post(`${baseURL}/register`,  { fname, lname, email, password })
+      .post(`${baseURL}/register`, { fname, lname, email, password })
       .then((response) => {
         if (response.data.success) {
-          setRegisterStatus(`Registration successful! You are registered as ${response.data.role}. Please log in.`);
+          setRegisterStatus(
+            `Registration successful! You are registered as ${response.data.role}. Please log in.`
+          );
           setIsRegistering(false);
 
           // Clear the form fields
@@ -77,9 +79,14 @@ function Authnew() {
         console.error(err);
         if (err.response && err.response.data) {
           // Handle specific backend errors here
-          setRegisterStatus(err.response.data.message || "An error occurred during registration. Please try again.");
+          setRegisterStatus(
+            err.response.data.message ||
+              "An error occurred during registration. Please try again."
+          );
         } else {
-          setRegisterStatus("An error occurred during registration. Please try again.");
+          setRegisterStatus(
+            "An error occurred during registration. Please try again."
+          );
         }
       });
   };
@@ -93,29 +100,28 @@ function Authnew() {
       return;
     }
 
-    axios
-      .post(`${baseURL}/login`, { email, password })
-      .then((response) => {
-        if (response.data.success) {
-          // Store user data in session storage
-          sessionStorage.setItem("userId", response.data.userId);
-          sessionStorage.setItem("email", response.data.email);
-          sessionStorage.setItem(
-            "userName",
-            `${response.data.fname} ${response.data.lname}`
-          );
-          sessionStorage.setItem("role", response.data.role); // Store role
-
-          setRegisterStatus("Login successful!");
-          navigate("/"); // Navigate to the homepage or dashboard
-        } else {
-          setRegisterStatus(response.data.message);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        setRegisterStatus("Invalid email or password.");
-      });
+    axios.post(`${baseURL}/login`, { email, password })
+    .then((response) => {
+      if (response.data.success) {
+        const user = response.data.user; // Extract user object
+  
+        sessionStorage.setItem("userId", user.id); 
+        sessionStorage.setItem("email", user.email);
+        sessionStorage.setItem("userName", `${user.fname} ${user.lname}`);
+        sessionStorage.setItem("role", user.role); 
+        sessionStorage.setItem("token", response.data.token); // Store token
+  
+        setRegisterStatus("Login successful!");
+        navigate("/"); 
+      } else {
+        setRegisterStatus(response.data.message);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      setRegisterStatus("Invalid email or password.");
+    });
+  
   };
 
   return (
