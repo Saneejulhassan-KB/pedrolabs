@@ -13,6 +13,7 @@ import Footer from "../Components/Footer/Footer";
 
 function Home() {
   const [userName, setUserName] = useState("");
+  const [cart, setCart] = useState({}); // Track added quantities
 
   useEffect(() => {
     // Retrieve the user's name from session storage
@@ -22,12 +23,20 @@ function Home() {
     }
   }, []);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("userName"); // Clear session storage
-    setUserName(""); // Reset the userName state
-    // Redirect to the login page if needed
-    window.location.href = "/authnew"; // Optional: Adjust the path as per your routing
-  };
+  useEffect(() => {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        setCart(JSON.parse(savedCart)); //  Load cart from storage
+      }
+    }, []);
+
+    const handleLogout = () => {
+      sessionStorage.removeItem("userName"); // Clear session storage
+      localStorage.removeItem("cart"); //  Clear cart from localStorage
+      setUserName(""); // Reset the userName state
+      setCart({}); //  Reset cart state in React
+      window.location.href = "/authnew"; // Redirect to login page
+    };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -48,7 +57,7 @@ function Home() {
   // Render the Home component after loading is complete
   return (
     <div>
-      <Header userName = {userName} handleLogout={handleLogout}/>
+      <Header userName = {userName} handleLogout={handleLogout} cart={cart}/>
 
       <img
         src="./cover photo/young-handsome-physician-medical-robe-with-stethoscope_1303-17818.avif"

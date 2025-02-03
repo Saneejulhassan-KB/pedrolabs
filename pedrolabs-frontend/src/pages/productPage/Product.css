@@ -15,3 +15,8 @@
     text-overflow: ellipsis;
     /* Add "..." to indicate truncated text */
 }
+
+.product-page {
+    margin-top: 120px; /* Adjust this value if needed */
+  }
+  

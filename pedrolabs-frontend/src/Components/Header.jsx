@@ -8,7 +8,7 @@ import { Link, useLocation } from "react-router-dom";
 import { MDBInput, MDBCol, MDBRow, MDBBtn, MDBIcon } from "mdb-react-ui-kit";
 import "./Header.css";
 
-function Header({ userName, handleLogout }) {
+function Header({ userName, handleLogout, cart }) {
   const location = useLocation();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -39,6 +39,9 @@ function Header({ userName, handleLogout }) {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  // Calculate total cart count
+  const totalCartCount = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
 
   return (
     <div>
@@ -120,6 +123,8 @@ function Header({ userName, handleLogout }) {
               />
             </Form>
             <div className="icon-div">
+              <Link to="/dashboard"><i class="fa-solid fa-list-check"></i></Link> 
+
               <i
                 className="fa-solid fa-cart-shopping"
                 onClick={handleNavItemClick}
@@ -137,10 +142,11 @@ function Header({ userName, handleLogout }) {
                     color: "white",
                     borderRadius: "50%",
                     padding: "5px 10px",
-                    fontSize: "14px",
+                    fontSize: "8px",
+                    display: totalCartCount > 0 ? "inline-block" : "none", // Hide when empty
                   }}
                 >
-                  1
+                  {totalCartCount}
                 </span>
               </i>
               {userName ? (

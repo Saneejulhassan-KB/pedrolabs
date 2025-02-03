@@ -10,85 +10,111 @@ function Authnew() {
   const [lname, setLname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); // Added for Confirm Password
   const [registerStatus, setRegisterStatus] = useState("");
   const navigate = useNavigate();
   const baseURL = "http://localhost:3001"; // Backend API URL
 
+  // **Function to handle user registration**
   const handleRegister = (e) => {
     e.preventDefault();
 
-    if (!fname || !lname || !email || !password) {
-      setRegisterStatus("Please fill out all fields.");
+    // **Frontend Validation**
+    if (!fname.trim() || !lname.trim() || !email.trim() || !password.trim()) {
+      setRegisterStatus("All fields are required.");
       return;
     }
 
-    console.log("Sending registration data:", {
-      fname,
-      lname,
-      email,
-      password,
-    });
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setRegisterStatus("Invalid email format.");
+      return;
+    }
 
+    if (password.length < 6) {
+      setRegisterStatus("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (
+      !/[A-Z]/.test(password) ||
+      !/[a-z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[@$!%*?&]/.test(password)
+    ) {
+      setRegisterStatus(
+        "Password must contain uppercase, lowercase, number, and special character."
+      );
+      return;
+    }
+
+    // Confirm Password Validation
+    if (password !== confirmPassword) {
+      setRegisterStatus("Passwords do not match.");
+      return;
+    }
+
+    // **Send Registration Request**
     axios
-      .post(`${baseURL}/register`, {
-        fname: fname,
-        lname: lname,
-        email: email,
-        password: password,
-      })
+      .post(`${baseURL}/register`,  { fname, lname, email, password })
       .then((response) => {
-        console.log("result", response.data);
         if (response.data.success) {
-          setRegisterStatus("Registration successful! Please log in.");
+          setRegisterStatus(`Registration successful! You are registered as ${response.data.role}. Please log in.`);
           setIsRegistering(false);
 
-          // Clear the form fields after successful registration
+          // Clear the form fields
           setFname("");
           setLname("");
           setEmail("");
           setPassword("");
+          setConfirmPassword(""); // Clear Confirm Password field
         } else {
-          setRegisterStatus(response.data.message); // Show error message
+          // If the response indicates failure (e.g., email already exists)
+          setRegisterStatus(response.data.message || "Registration failed.");
         }
       })
       .catch((err) => {
+        // This will catch network errors or other unexpected issues
         console.error(err);
-        setRegisterStatus(
-          "An error occurred during registration. Please try again later."
-        );
+        if (err.response && err.response.data) {
+          // Handle specific backend errors here
+          setRegisterStatus(err.response.data.message || "An error occurred during registration. Please try again.");
+        } else {
+          setRegisterStatus("An error occurred during registration. Please try again.");
+        }
       });
   };
 
+  // **Function to handle user login**
   const handleLogin = (e) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      setRegisterStatus("Please fill out all fields.");
+    if (!email.trim() || !password.trim()) {
+      setRegisterStatus("All fields are required.");
       return;
     }
-
-    console.log("Attempting login with:", { email, password });
 
     axios
       .post(`${baseURL}/login`, { email, password })
       .then((response) => {
-        console.log("result", response.data);
         if (response.data.success) {
-          sessionStorage.setItem("userId", response.data.userId); // Store user ID
+          // Store user data in session storage
+          sessionStorage.setItem("userId", response.data.userId);
           sessionStorage.setItem("email", response.data.email);
           sessionStorage.setItem(
             "userName",
-            `${response.data.fname} ${response.data.lname} `
+            `${response.data.fname} ${response.data.lname}`
           );
+          sessionStorage.setItem("role", response.data.role); // Store role
+
           setRegisterStatus("Login successful!");
-          navigate("/");
+          navigate("/"); // Navigate to the homepage or dashboard
         } else {
-          setRegisterStatus(response.data.message); // Show error message
+          setRegisterStatus(response.data.message);
         }
       })
       .catch((err) => {
         console.error(err);
-        setRegisterStatus("User not exist");
+        setRegisterStatus("Invalid email or password.");
       });
   };
 
@@ -104,14 +130,13 @@ function Authnew() {
                 </h3>
 
                 {isRegistering ? (
-                  // Registration Form
+                  // **Registration Form**
                   <Form onSubmit={handleRegister}>
                     <Form.Group controlId="formFirstName">
                       <Form.Label>First Name</Form.Label>
                       <Form.Control
                         type="text"
                         placeholder="Enter first name"
-                        name="fname"
                         value={fname}
                         onChange={(e) => setFname(e.target.value)}
                         required
@@ -123,7 +148,6 @@ function Authnew() {
                       <Form.Control
                         type="text"
                         placeholder="Enter last name"
-                        name="lname"
                         value={lname}
                         onChange={(e) => setLname(e.target.value)}
                         required
@@ -135,7 +159,6 @@ function Authnew() {
                       <Form.Control
                         type="email"
                         placeholder="Enter email"
-                        name="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -147,7 +170,51 @@ function Authnew() {
                       <Form.Control
                         type="password"
                         placeholder="Enter password"
-                        name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+
+                    {/* **Confirm Password field added** */}
+                    <Form.Group controlId="formConfirmPassword">
+                      <Form.Label>Confirm Password</Form.Label>
+                      <Form.Control
+                        type="password"
+                        placeholder="Confirm your password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      className="mt-3 w-100"
+                    >
+                      Register
+                    </Button>
+                  </Form>
+                ) : (
+                  // **Login Form**
+                  <Form onSubmit={handleLogin}>
+                    <Form.Group controlId="formEmail">
+                      <Form.Label>Email address</Form.Label>
+                      <Form.Control
+                        type="email"
+                        placeholder="Enter email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+
+                    <Form.Group controlId="formPassword">
+                      <Form.Label>Password</Form.Label>
+                      <Form.Control
+                        type="password"
+                        placeholder="Enter password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -157,96 +224,35 @@ function Authnew() {
                     <Button
                       variant="primary"
                       type="submit"
-                      className="w-100 mt-3"
-                    >
-                      Register
-                    </Button>
-
-                    <p className="text-center mt-3">
-                      Already registered?{" "}
-                      <span
-                        onClick={() => {
-                          setIsRegistering(false), setRegisterStatus(""); // Clear the error message
-                          setFname("");
-                          setLname("");
-                          setEmail("");
-                          setPassword("");
-                        }}
-                        style={{
-                          color: "#007bff", // A nice blue color
-                          textDecoration: "none", // Underline to resemble a link
-                          cursor: "pointer", // Pointer cursor to show it's clickable
-                          fontWeight: "bold", // Optional, to make the text stand out more
-                        }}
-                      >
-                        Login here
-                      </span>
-                    </p>
-                  </Form>
-                ) : (
-                  // Login Form
-                  <Form onSubmit={handleLogin}>
-                    <Form.Group controlId="formLoginEmail">
-                      <Form.Label>Email address</Form.Label>
-                      <Form.Control
-                        type="email"
-                        placeholder="Enter email"
-                        name="email"
-                        value={email} // Bind to the password state
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </Form.Group>
-
-                    <Form.Group controlId="formLoginPassword">
-                      <Form.Label>Password</Form.Label>
-                      <Form.Control
-                        type="password"
-                        placeholder="Enter password"
-                        name="password"
-                        value={password} // Bind to the password state
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </Form.Group>
-
-                    <Button
-                      variant="primary"
-                      type="submit"
-                      className="w-100 mt-3"
+                      className="mt-3 w-100"
                     >
                       Login
                     </Button>
-
-                    <p className="text-center mt-3">
-                      New user?{" "}
-                      <span
-                        onClick={() => {
-                          setIsRegistering(true), setRegisterStatus(""); // Clear the error message
-                          setFname("");
-                          setLname("");
-                          setEmail("");
-                          setPassword("");
-                        }}
-                        style={{
-                          color: "#007bff", // A nice blue color
-                          textDecoration: "none", // Underline to resemble a link
-                          cursor: "pointer", // Pointer cursor to show it's clickable
-                          fontWeight: "bold", // Optional, to make the text stand out more
-                        }}
-                      >
-                        Register here
-                      </span>
-                    </p>
                   </Form>
                 )}
 
-                <p
-                  className="text-center mt-3"
-                  style={{ color: "red", fontSize: "14px" }}
-                >
-                  {registerStatus}
-                </p>
+                <div className="text-center mt-4">
+                  {isRegistering ? (
+                    <p>
+                      Already have an account?{" "}
+                      <a href="#" onClick={() => setIsRegistering(false)}>
+                        Login here.
+                      </a>
+                    </p>
+                  ) : (
+                    <p>
+                      Don't have an account?{" "}
+                      <a href="#" onClick={() => setIsRegistering(true)}>
+                        Register here.
+                      </a>
+                    </p>
+                  )}
+                </div>
+
+                {/* Display status message */}
+                {registerStatus && (
+                  <p className="text-center text-danger">{registerStatus}</p>
+                )}
               </Card.Body>
             </Card>
           </Col>

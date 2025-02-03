@@ -15,6 +15,7 @@ function Services() {
   // loading
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState(""); // userName state
+  const [cart, setCart] = useState({}); // Track added quantities
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,12 +28,21 @@ function Services() {
         setUserName(name);
       }
     }, []);
+
+    useEffect(() => {
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+          setCart(JSON.parse(savedCart)); //  Load cart from storage
+        }
+      }, []);
   
-    const handleLogout = () => {
-      sessionStorage.removeItem("userName"); // Clear session storage
-      setUserName(""); // Reset the userName state
-      window.location.href = "/authnew"; // Redirect to the login page
-    };
+      const handleLogout = () => {
+        sessionStorage.removeItem("userName"); // Clear session storage
+        localStorage.removeItem("cart"); //  Clear cart from localStorage
+        setUserName(""); // Reset the userName state
+        setCart({}); //  Reset cart state in React
+        window.location.href = "/authnew"; // Redirect to login page
+      };
   
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
@@ -46,7 +56,7 @@ function Services() {
   return (
  
       <div>
-        <Header userName={userName} handleLogout={handleLogout}/>
+        <Header userName={userName} handleLogout={handleLogout} cart={cart}/>
         <img
           src="https://i.pinimg.com/736x/36/42/29/3642291603d80cbf90ee7421ba227a8b.jpg"
           alt=""

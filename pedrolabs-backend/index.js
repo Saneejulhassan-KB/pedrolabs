@@ -4,36 +4,34 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const multer = require("multer");
 const path = require("path");
+const bcrypt = require("bcryptjs"); // Correct bcrypt module
+require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use("/uploads", express.static("uploads")); //upload folder dbil create akum  image store chaiyan
+app.use("/uploads", express.static("uploads"));
 
 app.use(
   cors({
-    // Allow requests from the frontend
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Create MySQL connection pool
+// MySQL Connection Pool
 const pool = mysql.createPool({
   connectionLimit: 10,
   user: "root",
   host: "localhost",
-  password: "Admin123", // Replace with your MySQL password
-  // password: "Admin@1998", // Replace with your MySQL password
-  database: "pedrolabsdb", // Replace with your database name
+  password: "Admin@1998", // Update with your credentials
+  database: "pedrolabsdb",
 });
 
-// Registration route
-app.post("/register", (req, res) => {
+// ********** User Registration **********
+app.post("/register", async (req, res) => {
   const { fname, lname, email, password } = req.body;
-  console.log(req.body);
 
   if (!fname || !lname || !email || !password) {
     return res
@@ -41,33 +39,8 @@ app.post("/register", (req, res) => {
       .json({ success: false, message: "All fields are required." });
   }
 
-  const sql = `INSERT INTO register (fname, lname, email, password) VALUES (?, ?, ?, ?)`;
-
-  pool.query(sql, [fname, lname, email, password], (err, result) => {
-    if (err) {
-      console.error("Error inserting into database:", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Database error." });
-    } else
-      res
-        .status(200)
-        .json({ success: true, message: "User registered successfully." });
-  });
-});
-
-// Login route
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "All fields are required." });
-  }
-
-  const sql = `SELECT * FROM register WHERE email = ? AND password = ?`;
-  pool.query(sql, [email, password], (err, results) => {
+  const checkEmailQuery = `SELECT * FROM register WHERE email = ?`;
+  pool.query(checkEmailQuery, [email], async (err, results) => {
     if (err) {
       console.error("Error querying database:", err);
       return res
@@ -76,185 +49,242 @@ app.post("/login", (req, res) => {
     }
 
     if (results.length > 0) {
-      const user = results[0]; // Get user data
-      res.status(200).json({
-        success: true,
-        message: "Login successful.",
-        fname: user.fname,
-        lname: user.lname,
-        email: user.email,
-        userId: user.id,
-      });
-    } else {
-      res
-        .status(401)
-        .json({ success: false, message: "Invalid email or password." });
-    }
-  });
-});
-
-// get register data
-
-app.get("/getusers", (req, res) => {
-  const sql = `SELECT * FROM register`;
-  pool.query(sql, (err, results) => {
-    if (err) {
-      console.error("Error fetching data from database:", err);
       return res
-        .status(500)
-        .json({ success: false, message: "Database error" });
+        .status(400)
+        .json({ success: false, message: "Email already exists." });
     }
-    res.status(200).json({ success: true, data: results });
+
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Automatically assign role based on email
+      const role = email === "admin@gmail.com" ? "admin" : "user";
+
+      const sql = `INSERT INTO register (fname, lname, email, password, role) VALUES (?, ?, ?, ?, ?)`;
+      pool.query(
+        sql,
+        [fname, lname, email, hashedPassword, role],
+        (err, result) => {
+          if (err) {
+            console.error("Error inserting into database:", err);
+            return res
+              .status(500)
+              .json({ success: false, message: "Database error." });
+          }
+          res.status(200).json({
+            success: true,
+            message: "User registered successfully.",
+            role: role,
+          });
+        }
+      );
+    } catch (error) {
+      console.error("Error hashing password:", error);
+      res.status(500).json({ success: false, message: "Server error." });
+    }
   });
 });
 
-// delete register data
+// ********** User Login **********
+const jwt = require("jsonwebtoken");
 
-app.delete("/delete/:id", (req, res) => {
-  console.log("deleted the id sucessfully", req.body);
-  const id = req.params.id;
-  pool.query("DELETE FROM register WHERE id = ?", id, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.send(result);
-    }
-  });
-});
-
-// Update register data
-app.put("/update/:id", (req, res) => {
-  const id = req.params.id;
-  const { fname, lname, email } = req.body;
-
-  if (!fname || !lname || !email) {
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password)
     return res
       .status(400)
       .json({ success: false, message: "All fields are required." });
-  }
-
-  const sql = `UPDATE register SET fname = ?, lname = ?, email = ? WHERE id = ?`;
-  pool.query(sql, [fname, lname, email, id], (err, result) => {
-    if (err) {
-      console.error("Error updating database:", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Database error." });
-    }
-
-    if (result.affectedRows > 0) {
-      res
-        .status(200)
-        .json({ success: true, message: "User updated successfully." });
-    } else {
-      res.status(404).json({ success: false, message: "User not found." });
-    }
-  });
-});
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const extension = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + extension);
-  },
-});
-
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype.startsWith("image/") &&
-    /\.(jpg|jpeg|png|gif)$/i.test(file.originalname)
-  ) {
-    cb(null, true);
-  } else {
-    cb(
-      new Error("Only JPG, JPEG, PNG, and GIF image files are allowed."),
-      false
-    );
-  }
-};
-
-const upload = multer({ storage: storage, fileFilter: fileFilter });
-
-// Serve static files from the uploads folder
-app.use("/uploads", express.static("uploads"));
-
-app.post("/product", upload.single("image"), (req, res) => {
-  console.log("Image upload successful");
-
-  const { name, details, originalprice, offerprice } = req.body; // Adjusted fields to match your table structure
-  const image = req.file ? req.file.filename : null;
-
-  if (!name || !details || !originalprice || !offerprice || !image) {
-    res
-      .status(400)
-      .json({ error: "All fields are required, including an image." });
-    return;
-  }
-
-  const sql = `
-    INSERT INTO products (name, details, originalprice, offerprice, image)
-    VALUES (?, ?, ?, ?, ?)
-  `;
 
   pool.query(
-    sql,
-    [name, details, originalprice, offerprice, image],
-    (err, result) => {
-      if (err) {
-        console.error("Error adding product: ", err);
-        res.status(500).json({ error: "Failed to add product" });
-        return;
-      }
+    "SELECT * FROM register WHERE email = ?",
+    [email],
+    async (err, results) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error." });
 
-      res.json({
-        message: "Product added successfully",
-        productId: result.insertId,
+      if (results.length === 0)
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid email or password." });
+
+      const user = results[0];
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch)
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid email or password." });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Login successful.",
+        token,
+        user: {
+          id: user.id,
+          fname: user.fname,
+          lname: user.lname,
+          email: user.email,
+          role: user.role,
+        },
       });
     }
   );
 });
 
-// get product details
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization;
+  if (!token)
+    return res.status(403).json({ success: false, message: "Access denied." });
 
-app.get("/getproducts", (req, res) => {
-  const sql = `SELECT * FROM products`;
-  pool.query(sql, (err, results) => {
-    if (err) {
-      console.error("Error fetching data from database:", err);
+  jwt.verify(token.split(" ")[1], process.env.JWT_SECRET, (err, decoded) => {
+    if (err)
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid token." });
+
+    req.user = decoded; // Attach user data to request object
+    next();
+  });
+};
+
+const verifyAdmin = (req, res, next) => {
+  if (req.user.role !== "admin")
+    return res
+      .status(403)
+      .json({ success: false, message: "Admin access required." });
+
+  next();
+};
+
+// app.delete("/delete/:id", verifyToken, verifyAdmin, (req, res) => {
+//   pool.query(
+//     "DELETE FROM register WHERE id = ?",
+//     [req.params.id],
+//     (err, result) => {
+//       if (err)
+//         return res
+//           .status(500)
+//           .json({ success: false, message: "Database error" });
+//       res.json({ success: true, message: "User deleted successfully." });
+//     }
+//   );
+// });
+
+// ********** CRUD Operations for Users **********
+app.get("/getusers", verifyToken, (req, res) => {
+  pool.query("SELECT * FROM register", (err, results) => {
+    if (err)
       return res
         .status(500)
         .json({ success: false, message: "Database error" });
-    }
     res.status(200).json({ success: true, data: results });
   });
 });
 
-// Start the server
-app.listen(3001, () => {
-  console.log("Running backend server on port 3001");
+app.delete("/delete/:id", verifyToken, verifyAdmin, (req, res) => {
+  pool.query(
+    "DELETE FROM register WHERE id = ?",
+    [req.params.id],
+    (err, result) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error" });
+      res.json({ success: true, message: "User deleted successfully." });
+    }
+  );
 });
 
+app.put("/update/:id", verifyToken, verifyAdmin, (req, res) => {
+  const { fname, lname, email } = req.body;
+  if (!fname || !lname || !email)
+    return res
+      .status(400)
+      .json({ success: false, message: "All fields are required." });
 
+  pool.query(
+    "UPDATE register SET fname = ?, lname = ?, email = ? WHERE id = ?",
+    [fname, lname, email, req.params.id],
+    (err, result) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error." });
+      if (result.affectedRows === 0)
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found." });
+      res
+        .status(200)
+        .json({ success: true, message: "User updated successfully." });
+    }
+  );
+});
 
+// ********** Image Upload Configuration **********
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => {
+    const uniqueSuffix =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix);
+  },
+});
 
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) cb(null, true);
+  else cb(new Error("Only image files are allowed."), false);
+};
 
+const upload = multer({ storage, fileFilter });
 
+// ********** Product Management **********
+app.post(
+  "/product",
+  upload.single("image"),
+  verifyToken,
+  verifyAdmin,
+  (req, res) => {
+    const { name, details, originalprice, offerprice } = req.body;
+    const image = req.file ? req.file.filename : null;
+    if (!name || !details || !originalprice || !offerprice || !image)
+      return res.status(400).json({ error: "All fields are required." });
 
+    pool.query(
+      "INSERT INTO products (name, details, originalprice, offerprice, image) VALUES (?, ?, ?, ?, ?)",
+      [name, details, originalprice, offerprice, image],
+      (err, result) => {
+        if (err)
+          return res.status(500).json({ error: "Failed to add product" });
+        res.json({
+          message: "Product added successfully",
+          productId: result.insertId,
+        });
+      }
+    );
+  }
+);
 
+app.get("/getproducts", (req, res) => {
+  pool.query("SELECT * FROM products", (err, results) => {
+    if (err)
+      return res
+        .status(500)
+        .json({ success: false, message: "Database error" });
+    res.status(200).json({ success: true, data: results });
+  });
+});
 
-
-
-
-
-
-
-
-
-
-
-
-
+// ********** Start Server **********
+app.listen(3001, () => console.log("Running backend server on port 3001"));

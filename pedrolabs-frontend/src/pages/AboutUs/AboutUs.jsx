@@ -12,6 +12,7 @@ import Preloader from "../../Components/Preloader/Preloader";
 function AboutUs() {
   const [loading, setLoading] = useState(true); // loading state
   const [userName, setUserName] = useState(""); // userName state
+  const [cart, setCart] = useState({}); // Track added quantities
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,11 +26,20 @@ function AboutUs() {
     }
   }, []);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("userName"); // Clear session storage
-    setUserName(""); // Reset the userName state
-    window.location.href = "/authnew"; // Redirect to the login page
-  };
+  useEffect(() => {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        setCart(JSON.parse(savedCart)); //  Load cart from storage
+      }
+    }, []);
+
+    const handleLogout = () => {
+      sessionStorage.removeItem("userName"); // Clear session storage
+      localStorage.removeItem("cart"); //  Clear cart from localStorage
+      setUserName(""); // Reset the userName state
+      setCart({}); //  Reset cart state in React
+      window.location.href = "/authnew"; // Redirect to login page
+    };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000); // Simulate loading
@@ -84,7 +94,7 @@ function AboutUs() {
 
   return (
     <div>
-      <Header userName={userName} handleLogout={handleLogout} />
+      <Header userName={userName} handleLogout={handleLogout} cart={cart}/>
       <img
         src="./about page/Examples_of_Smart_Technology_in_Healthcare_Hero_T_9dc61fc1c8.jpg"
         className="banner-image"
