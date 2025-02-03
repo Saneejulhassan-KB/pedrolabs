@@ -9,8 +9,13 @@ import Authnew from "./Components/Register/Authnew.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import Product from "./pages/productPage/Product.jsx";
 import Test from "./Components/test/Test.jsx";
+import { useState } from "react";
+
 
 function App() {
+
+
+
   return (
     <>
       <Router>
@@ -19,7 +24,7 @@ function App() {
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/services" element={<Services />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/product" element={<Product />} />
+          <Route path="/product" element={<Product />}  />
           <Route path="/test" element={<Test />} />
           {/* <Route path="/register" element={<Register />} /> */}
 

@@ -24,11 +24,22 @@ function Product() {
     }
   }, []);
 
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      setCart(JSON.parse(savedCart)); //  Load cart from storage
+    }
+  }, []);
+  
+
   const handleLogout = () => {
     sessionStorage.removeItem("userName"); // Clear session storage
+    localStorage.removeItem("cart"); //  Clear cart from localStorage
     setUserName(""); // Reset the userName state
-    window.location.href = "/authnew"; // Redirect to the login page
+    setCart({}); //  Reset cart state in React
+    window.location.href = "/authnew"; // Redirect to login page
   };
+  
 
   // Fetch products
   const fetchProducts = () => {
@@ -75,14 +86,20 @@ function Product() {
 
   const handleAddToCart = (product) => {
     const quantity = quantities[product.id] || 1;
-
-    setCart((prev) => ({
-      ...prev,
-      [product.id]: (prev[product.id] || 0) + quantity,
-    }));
-
+  
+    setCart((prev) => {
+      const updatedCart = {
+        ...prev,
+        [product.id]: (prev[product.id] || 0) + quantity,
+      };
+  
+      localStorage.setItem("cart", JSON.stringify(updatedCart)); // ✅ Save after updating
+      return updatedCart;
+    });
+  
     alert(`${quantity} ${product.name}(s) added to the cart!`);
   };
+  
 
   // Calculate total items in cart
   const totalItemsInCart = Object.values(cart).reduce(
@@ -91,11 +108,10 @@ function Product() {
   );
 
   return (
-    <div className="product-page container my-5">
-      <Header userName={userName} handleLogout={handleLogout} />
-      <h1>Total Items in Cart: {totalItemsInCart}</h1>
+    <div className="product-page container ">
+      <Header userName={userName} handleLogout={handleLogout} cart={cart} />
 
-      <Row xs={1} sm={2} md={3} className="g-4">
+      <Row xs={1} sm={2} md={3}>
         {products.map((product) => (
           <Col key={product.id}>
             <Card className="product-card mb-4 shadow-sm">
