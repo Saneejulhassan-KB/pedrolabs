@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const multer = require("multer");
 const path = require("path");
 const bcrypt = require("bcryptjs"); // Correct bcrypt module
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -25,12 +26,13 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   user: "root",
   host: "localhost",
-  password: "Admin@1998", // Update with your credentials
+  password: "Admin123", // Update with your credentials
   database: "pedrolabsdb",
 });
 
 // ********** User Registration **********
 app.post("/register", async (req, res) => {
+  console.log ("registration sucessfull")
   const { fname, lname, email, password } = req.body;
 
   if (!fname || !lname || !email || !password) {
@@ -86,7 +88,7 @@ app.post("/register", async (req, res) => {
 });
 
 // ********** User Login **********
-const jwt = require("jsonwebtoken");
+
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
@@ -123,6 +125,7 @@ app.post("/login", (req, res) => {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
+
       res.status(200).json({
         success: true,
         message: "Login successful.",
@@ -141,21 +144,29 @@ app.post("/login", (req, res) => {
 
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization;
+
+  console.log("Received Token:", token);  
+
   if (!token)
     return res.status(403).json({ success: false, message: "Access denied." });
 
   jwt.verify(token.split(" ")[1], process.env.JWT_SECRET, (err, decoded) => {
-    if (err)
+    if (err) {
+      console.error("Token verification failed:", err.message); 
       return res
         .status(401)
         .json({ success: false, message: "Invalid token." });
+    }
 
-    req.user = decoded; // Attach user data to request object
+    console.log("Decoded Token Data:", decoded); 
+    req.user = decoded; 
     next();
   });
 };
 
 const verifyAdmin = (req, res, next) => {
+  console.log("User Role:", req.user.role); // Log the user role
+
   if (req.user.role !== "admin")
     return res
       .status(403)
@@ -163,6 +174,7 @@ const verifyAdmin = (req, res, next) => {
 
   next();
 };
+
 
 // app.delete("/delete/:id", verifyToken, verifyAdmin, (req, res) => {
 //   pool.query(

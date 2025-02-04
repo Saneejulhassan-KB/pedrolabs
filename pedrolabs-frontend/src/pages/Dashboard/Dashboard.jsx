@@ -21,34 +21,35 @@ function Dashboard() {
   const [originalprice, setOriginalprice] = useState("");
   const [offerprice, setOfferprice] = useState("");
 
+
+  const userRole = sessionStorage.getItem("role");
+  const userName = sessionStorage.getItem("userName");
+  const userEmail = sessionStorage.getItem("userEmail");
+  const token = sessionStorage.getItem("token");
+
   // Fetch Registered Users
   const fetchRegisteredUsers = () => {
-    const token = localStorage.getItem("token"); // Get token from localStorage
-  
     if (!token) {
       console.error("No token found, please login first.");
       return;
     }
-  
+
     axios
       .get(`${baseURL}/getusers`, {
-        headers: {
-          Authorization: `Bearer ${token}`, // Attach token to request
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
         setUsers(response.data.data || []);
       })
       .catch((error) => {
         console.error("Error fetching users:", error);
-        if (error.response && error.response.status === 401) {
+        if (error.response?.status === 401) {
           alert("Unauthorized access. Please log in again.");
-          localStorage.removeItem("token"); // Clear token on failure
-          window.location.href = "/login"; // Redirect to login page
+          sessionStorage.removeItem("token");
+          window.location.href = "/login";
         }
       });
   };
-  
 
   // User Actions
   const handleEditUser = (user) => {
@@ -74,6 +75,9 @@ function Dashboard() {
         });
     }
   };
+
+
+
 
   const handleDeleteUser = (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
@@ -140,203 +144,86 @@ function Dashboard() {
 
   // Initial Data Fetch
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       fetchRegisteredUsers();
     }
   }, []);
 
   return (
-    <Container className="dashboard-container">
-      <h2 className="text-center my-4">User Dashboard</h2>
+ <Container className="dashboard-container">
+    <h2 className="text-center my-4"></h2>
 
-      {/* Add Product Button */}
-      <div className="text-end mb-3">
-        <Button
-          variant="success"
-          onClick={handleAddProduct}
-          style={{
-            fontSize: "16px",
-            padding: "10px 40px",
-            borderRadius: "5px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "auto",
-          }}
-        >
-          Add Product
-        </Button>
-      </div>
+    {sessionStorage.getItem("token") ? (
+      sessionStorage.getItem("role") === "admin" ? (
+        <>
+          <div className="text-end mb-3">
+            <Button
+              variant="success"
+              onClick={handleAddProduct}
+              style={{
+                fontSize: "16px",
+                padding: "10px 40px",
+                borderRadius: "5px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "auto",
+              }}
+            >
+              Add Product
+            </Button>
+          </div>
 
-      {/* Users Table */}
-      
-    {localStorage.getItem("token") ? (
-      <Table striped bordered hover responsive className="text-center">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.fname}</td>
-              <td>{user.lname}</td>
-              <td>{user.email}</td>
-              <td>
-                <Button variant="warning" className="me-2" onClick={() => handleEditUser(user)}>Edit</Button>
-                <Button variant="danger" onClick={() => handleDeleteUser(user.id)}>Delete</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+          <Table striped bordered hover responsive className="text-center">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>{user.id}</td>
+                  <td>{user.fname}</td>
+                  <td>{user.lname}</td>
+                  <td>{user.email}</td>
+                  <td>
+                    <Button
+                      variant="warning"
+                      className="me-2"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
+      ) : (
+        <div className="text-center">
+          <h3>Welcome, {sessionStorage.getItem("userName")}!</h3>
+          <p>Name: {sessionStorage.getItem("userName")}</p>
+          <p>Email: {sessionStorage.getItem("email")}</p>
+          <p>ID: {sessionStorage.getItem("userId")}</p>
+        </div>
+      )
     ) : (
-      <p className="text-center">Please log in to view user details.</p>
+      <p className="text-center">Please log in to view your details.</p>
     )}
-
-      {/* Edit User Modal */}
-      <Modal show={showModal} onHide={handleCloseUserModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit User</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedUser && (
-            <Form>
-              <Form.Group controlId="formFname">
-                <Form.Label>First Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Enter first name"
-                  value={selectedUser.fname}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, fname: e.target.value })
-                  }
-                />
-              </Form.Group>
-
-              <Form.Group controlId="formLname">
-                <Form.Label>Last Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Enter last name"
-                  value={selectedUser.lname}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, lname: e.target.value })
-                  }
-                />
-              </Form.Group>
-
-              <Form.Group controlId="formEmail">
-                <Form.Label>Email</Form.Label>
-                <Form.Control
-                  type="email"
-                  placeholder="Enter email"
-                  value={selectedUser.email}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, email: e.target.value })
-                  }
-                />
-              </Form.Group>
-            </Form>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={handleCloseUserModal}
-            className="pr-5"
-          >
-            Close
-          </Button>
-          <Button variant="primary" onClick={handleSaveUser} className="pr-5">
-            Save
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Add Product Modal */}
-      <Modal show={showProductModal} onHide={handleCloseProductModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Product</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSaveProduct}>
-            <Form.Group controlId="formProductName">
-              <Form.Label>Product Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter product name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group controlId="formProductDetails">
-              <Form.Label>Details</Form.Label>
-              <Form.Control
-                as="textarea"
-                placeholder="Enter product details"
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group controlId="formProductPhoto">
-              <Form.Label>Photo URL</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter photo URL"
-                value={photo}
-                onChange={(e) => setPhoto(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group controlId="formOriginalPrice">
-              <Form.Label>Original Price</Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter original price"
-                value={originalprice}
-                onChange={(e) => setOriginalprice(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group controlId="formOfferPrice">
-              <Form.Label>Offer Price</Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter offer price"
-                value={offerprice}
-                onChange={(e) => setOfferprice(e.target.value)}
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={handleCloseProductModal}
-            className="pr-5"
-          >
-            Close
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSaveProduct}
-            className="pr-5"
-          >
-            Save
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+  </Container>
   );
 }
 
