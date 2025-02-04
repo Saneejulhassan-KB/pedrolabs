@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Container, Table, Button, Modal, Form } from "react-bootstrap";
 import axios from "axios";
 import "./Dashboard.css";
+import { Link } from "react-router-dom";
 
 function Dashboard() {
   const baseURL = "http://localhost:3001";
@@ -244,26 +245,44 @@ function Dashboard() {
       {/* User or Product Table */}
       {activeTab === "user" ? (
         <>
-          <div className="text-end mb-3">
+          <div className="text-end mb-3" style={{ display: "flex", gap: "10px" }}>
             <Button
               variant="success"
               onClick={() => (window.location.href = "./test")} // Add product button should still be present in user tab
               style={{
-                fontSize: "16px",
+                fontSize: "11px",
                 padding: "10px 40px",
                 borderRadius: "5px",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 height: "auto",
+                whiteSpace: "nowrap",
               }}
             >
               Add Product
             </Button>
+            <Link to="/">
+              <Button
+                variant="danger"
+                style={{
+                  fontSize: "11px",
+                  padding: "10px 40px",
+                  borderRadius: "5px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Go To Home
+              </Button>
+            </Link>
           </div>
 
           <Table striped bordered hover responsive className="text-center">
-            <thead >
+            <thead>
               <tr>
                 <th>#</th>
                 <th>First Name</th>
@@ -281,7 +300,7 @@ function Dashboard() {
                   <td>{user.lname}</td>
                   <td>{user.email}</td>
                   <td>{user.role}</td>
-                  <td>
+                  <td className="d-flex justify-content-center">
                     <Button
                       variant="warning"
                       className="me-2 pr-5"
@@ -304,22 +323,43 @@ function Dashboard() {
         </>
       ) : (
         <>
-          <div className="text-end mb-3">
+          <div
+            className="text-end mb-3"
+            style={{ display: "flex", gap: "10px" }}
+          >
             <Button
               variant="success"
-              onClick={handleAddProduct}
+              onClick={() => (window.location.href = "./test")} // Add product button should still be present in user tab
               style={{
-                fontSize: "16px",
+                fontSize: "11px",
                 padding: "10px 40px",
                 borderRadius: "5px",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 height: "auto",
+                whiteSpace: "nowrap",
               }}
             >
               Add Product
             </Button>
+            <Link to="/">
+              <Button
+                variant="danger"
+                style={{
+                  fontSize: "11px",
+                  padding: "10px 40px",
+                  borderRadius: "5px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Go To Home
+              </Button>
+            </Link>
           </div>
 
           <Table striped bordered hover responsive className="text-center">

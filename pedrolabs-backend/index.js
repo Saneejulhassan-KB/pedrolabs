@@ -285,5 +285,20 @@ app.get("/getproducts", (req, res) => {
   });
 });
 
+
+app.delete("/deleteproduct/:id", verifyToken, verifyAdmin, (req, res) => {
+  pool.query(
+    "DELETE FROM products WHERE id = ?",
+    [req.params.id],
+    (err, result) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error" });
+      res.json({ success: true, message: "Product deleted successfully." });
+    }
+  );
+});
+
 // ********** Start Server **********
 app.listen(3001, () => console.log("Running backend server on port 3001"));
