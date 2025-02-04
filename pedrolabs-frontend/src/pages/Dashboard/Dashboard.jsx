@@ -2,16 +2,18 @@ import React, { useEffect, useState } from "react";
 import { Container, Table, Button, Modal, Form } from "react-bootstrap";
 import axios from "axios";
 import "./Dashboard.css";
+import { Link } from "react-router-dom";
 
 function Dashboard() {
   const baseURL = "http://localhost:3001";
 
   // State Management
   const [users, setUsers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [activeTab, setActiveTab] = useState("user"); // New state to manage active tab
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-
-  const [products, setProducts] = useState([]); // For managing products
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [registerStatus, setRegisterStatus] = useState("");
 
@@ -23,17 +25,17 @@ function Dashboard() {
 
   // Fetch Registered Users
   const fetchRegisteredUsers = () => {
-    const token = localStorage.getItem("token"); // Get token from localStorage
-  
+    const token = sessionStorage.getItem("token");
+
     if (!token) {
       console.error("No token found, please login first.");
       return;
     }
-  
+
     axios
       .get(`${baseURL}/getusers`, {
         headers: {
-          Authorization: `Bearer ${token}`, // Attach token to request
+          Authorization: `Bearer ${token}`,
         },
       })
       .then((response) => {
@@ -43,12 +45,34 @@ function Dashboard() {
         console.error("Error fetching users:", error);
         if (error.response && error.response.status === 401) {
           alert("Unauthorized access. Please log in again.");
-          localStorage.removeItem("token"); // Clear token on failure
-          window.location.href = "/login"; // Redirect to login page
+          sessionStorage.removeItem("token");
+          window.location.href = "/login";
         }
       });
   };
-  
+
+  // Fetch Products
+  const fetchProducts = () => {
+    const token = sessionStorage.getItem("token");
+
+    if (!token) {
+      console.error("No token found, please login first.");
+      return;
+    }
+
+    axios
+      .get(`${baseURL}/getproducts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((response) => {
+        setProducts(response.data.data || []);
+      })
+      .catch((error) => {
+        console.error("Error fetching products:", error);
+      });
+  };
 
   // User Actions
   const handleEditUser = (user) => {
@@ -58,8 +82,18 @@ function Dashboard() {
 
   const handleSaveUser = () => {
     if (selectedUser) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        console.error("Token is missing.");
+        return;
+      }
+
       axios
-        .put(`${baseURL}/update/${selectedUser.id}`, selectedUser)
+        .put(`${baseURL}/update/${selectedUser.id}`, selectedUser, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then((response) => {
           if (response.data.success) {
             fetchRegisteredUsers();
@@ -77,8 +111,18 @@ function Dashboard() {
 
   const handleDeleteUser = (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        console.error("Token is missing.");
+        return;
+      }
+
       axios
-        .delete(`${baseURL}/delete/${id}`)
+        .delete(`${baseURL}/delete/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then(() => {
           fetchRegisteredUsers();
         })
@@ -88,14 +132,9 @@ function Dashboard() {
     }
   };
 
-  const handleCloseUserModal = () => {
-    setShowModal(false);
-    setSelectedUser(null);
-  };
-
   // Product Actions
   const handleAddProduct = () => {
-    window.location.href = "./test";
+    setShowProductModal(true);
   };
 
   const handleSaveProduct = (e) => {
@@ -118,7 +157,7 @@ function Dashboard() {
         if (response.data.success) {
           setRegisterStatus(response.data.message);
           setShowProductModal(false);
-          // Optionally fetch products if required
+          fetchProducts(); // Fetch products after adding a new one
         } else {
           setRegisterStatus(response.data.message);
         }
@@ -127,6 +166,34 @@ function Dashboard() {
         console.error(err);
         setRegisterStatus("An error occurred. Please try again later.");
       });
+  };
+
+  const handleDeleteProduct = (id) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        console.error("Token is missing.");
+        return;
+      }
+
+      axios
+        .delete(`${baseURL}/deleteproduct/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then(() => {
+          fetchProducts();
+        })
+        .catch((error) => {
+          console.error("Error deleting product:", error);
+        });
+    }
+  };
+
+  const handleEditProduct = (product) => {
+    setSelectedProduct(product);
+    setShowProductModal(true);
   };
 
   const handleCloseProductModal = () => {
@@ -138,68 +205,212 @@ function Dashboard() {
     setOfferprice("");
   };
 
+  const handleCloseUserModal = () => {
+    setShowModal(false);
+    setSelectedUser(null);
+  };
+
   // Initial Data Fetch
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       fetchRegisteredUsers();
+      fetchProducts(); // Fetch products as well
     }
   }, []);
 
   return (
     <Container className="dashboard-container">
-      <h2 className="text-center my-4">User Dashboard</h2>
+      <h2 className="text-center my-4">Admin Dashboard</h2>
 
-      {/* Add Product Button */}
-      <div className="text-end mb-3">
+      {/* Tab buttons */}
+      <div className="text-center mb-3">
         <Button
-          variant="success"
-          onClick={handleAddProduct}
-          style={{
-            fontSize: "16px",
-            padding: "10px 40px",
-            borderRadius: "5px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "auto",
-          }}
+          variant={activeTab === "user" ? "primary" : "secondary"}
+          onClick={() => setActiveTab("user")}
+          className="me-2 "
+          style={{ paddingRight: "58px" }}
         >
-          Add Product
+          Users
+        </Button>
+        <Button
+          variant={activeTab === "product" ? "primary" : "secondary"}
+          onClick={() => setActiveTab("product")}
+          style={{ paddingRight: "80px" }}
+        >
+          Products
         </Button>
       </div>
 
-      {/* Users Table */}
-      
-    {localStorage.getItem("token") ? (
-      <Table striped bordered hover responsive className="text-center">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.fname}</td>
-              <td>{user.lname}</td>
-              <td>{user.email}</td>
-              <td>
-                <Button variant="warning" className="me-2" onClick={() => handleEditUser(user)}>Edit</Button>
-                <Button variant="danger" onClick={() => handleDeleteUser(user.id)}>Delete</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    ) : (
-      <p className="text-center">Please log in to view user details.</p>
-    )}
+      {/* User or Product Table */}
+      {activeTab === "user" ? (
+        <>
+          <div className="text-end mb-3" style={{ display: "flex", gap: "10px" }}>
+            <Button
+              variant="success"
+              onClick={() => (window.location.href = "./test")} // Add product button should still be present in user tab
+              style={{
+                fontSize: "11px",
+                padding: "10px 40px",
+                borderRadius: "5px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "auto",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Add Product
+            </Button>
+            <Link to="/">
+              <Button
+                variant="danger"
+                style={{
+                  fontSize: "11px",
+                  padding: "10px 40px",
+                  borderRadius: "5px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Go To Home
+              </Button>
+            </Link>
+          </div>
+
+          <Table striped bordered hover responsive className="text-center">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user, index) => (
+                <tr key={user.id}>
+                  <td>{index + 1}</td>
+                  <td>{user.fname}</td>
+                  <td>{user.lname}</td>
+                  <td>{user.email}</td>
+                  <td>{user.role}</td>
+                  <td className="d-flex justify-content-center">
+                    <Button
+                      variant="warning"
+                      className="me-2 pr-5"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="pr-5"
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
+      ) : (
+        <>
+          <div
+            className="text-end mb-3"
+            style={{ display: "flex", gap: "10px" }}
+          >
+            <Button
+              variant="success"
+              onClick={() => (window.location.href = "./test")} // Add product button should still be present in user tab
+              style={{
+                fontSize: "11px",
+                padding: "10px 40px",
+                borderRadius: "5px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "auto",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Add Product
+            </Button>
+            <Link to="/">
+              <Button
+                variant="danger"
+                style={{
+                  fontSize: "11px",
+                  padding: "10px 40px",
+                  borderRadius: "5px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Go To Home
+              </Button>
+            </Link>
+          </div>
+
+          <Table striped bordered hover responsive className="text-center">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product Name</th>
+                <th>Details</th>
+                <th>Photo</th>
+                <th>Original Price</th>
+                <th>Offer Price</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product, index) => (
+                <tr key={product.id}>
+                  <td>{index + 1}</td>
+                  <td>{product.name}</td>
+                  <td>{product.details}</td>
+                  <td>
+                    <img
+                      src={`${baseURL}/uploads/${product.image}`}
+                      alt={product.name}
+                      width="50"
+                    />
+                  </td>
+                  <td>{product.originalprice}</td>
+                  <td>{product.offerprice}</td>
+                  <td className="d-flex justify-content-center">
+                    <Button
+                      variant="warning"
+                      className="me-2 pr-5"
+                      onClick={() => handleEditProduct(product)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="pr-5"
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
+      )}
 
       {/* Edit User Modal */}
       <Modal show={showModal} onHide={handleCloseUserModal}>
@@ -261,7 +472,7 @@ function Dashboard() {
         </Modal.Footer>
       </Modal>
 
-      {/* Add Product Modal */}
+      {/* Edit Product Modal */}
       <Modal show={showProductModal} onHide={handleCloseProductModal}>
         <Modal.Header closeButton>
           <Modal.Title>Add Product</Modal.Title>

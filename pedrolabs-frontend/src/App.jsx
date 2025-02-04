@@ -10,30 +10,31 @@ import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import Product from "./pages/productPage/Product.jsx";
 import Test from "./Components/test/Test.jsx";
 import { useState } from "react";
-
+import ProtectedAdminRoute from "./ProtectedAdminRoute.jsx";
+import UnauthorizedPage from "./UnauthorizedPage.jsx"; // Add the UnauthorizedPage import
 
 function App() {
-
-
-
   return (
-    <>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about-us" element={<AboutUs />} />
-          <Route path="/services" element={<Services />} />
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/services" element={<Services />} />
+        
+        {/* Protected admin routes */}
+        <Route element={<ProtectedAdminRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/product" element={<Product />}  />
-          <Route path="/test" element={<Test />} />
-          {/* <Route path="/register" element={<Register />} /> */}
+        </Route>
 
-          <Route path="/authnew" element={<Authnew />} />
-          {/* <Route path="/register" element={<SignInSignUpForm />} /> */}
-          <Route path="/preloader" element={<Preloader />} />
-        </Routes>
-      </Router>
-    </>
+        <Route path="/product" element={<Product />} />
+        <Route path="/test" element={<Test />} />
+        <Route path="/authnew" element={<Authnew />} />
+        <Route path="/preloader" element={<Preloader />} />
+
+        {/* Unauthorized Route */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      </Routes>
+    </Router>
   );
 }
 

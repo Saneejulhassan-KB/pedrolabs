@@ -103,8 +103,9 @@ function Authnew() {
     axios.post(`${baseURL}/login`, { email, password })
     .then((response) => {
       if (response.data.success) {
+       
         const user = response.data.user; // Extract user object
-  
+        
         sessionStorage.setItem("userId", user.id); 
         sessionStorage.setItem("email", user.email);
         sessionStorage.setItem("userName", `${user.fname} ${user.lname}`);

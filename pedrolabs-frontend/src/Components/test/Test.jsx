@@ -28,6 +28,7 @@ function Test() {
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`, // Ensure token is included
           },
         }
       );
