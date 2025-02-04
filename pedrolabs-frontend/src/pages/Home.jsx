@@ -31,7 +31,11 @@ function Home() {
     }, []);
 
     const handleLogout = () => {
+<<<<<<< HEAD
       sessionStorage.clear();
+=======
+      sessionStorage.clear()
+>>>>>>> de8b6054472a1617cbdc22cf1be622ceec644ec7
       sessionStorage.removeItem("userName"); // Clear session storage
       localStorage.removeItem("cart"); //  Clear cart from localStorage
       setUserName(""); // Reset the userName state
