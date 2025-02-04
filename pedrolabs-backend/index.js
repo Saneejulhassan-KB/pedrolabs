@@ -179,7 +179,7 @@ const verifyAdmin = (req, res, next) => {
 // });
 
 // ********** CRUD Operations for Users **********
-app.get("/getusers", verifyToken, (req, res) => {
+app.get("/getusers", verifyToken, verifyAdmin, (req, res) => {
   pool.query("SELECT * FROM register", (err, results) => {
     if (err)
       return res
@@ -203,7 +203,7 @@ app.delete("/delete/:id", verifyToken, verifyAdmin, (req, res) => {
   );
 });
 
-app.put("/update/:id", verifyToken, verifyAdmin, (req, res) => {
+app.put("/update/:id", verifyToken, (req, res) => {
   const { fname, lname, email } = req.body;
   if (!fname || !lname || !email)
     return res
@@ -250,31 +250,24 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // ********** Product Management **********
-app.post(
-  "/product",
-  upload.single("image"),
-  verifyToken,
-  verifyAdmin,
-  (req, res) => {
-    const { name, details, originalprice, offerprice } = req.body;
-    const image = req.file ? req.file.filename : null;
-    if (!name || !details || !originalprice || !offerprice || !image)
-      return res.status(400).json({ error: "All fields are required." });
+app.post("/product", upload.single("image"), verifyToken, (req, res) => {
+  const { name, details, originalprice, offerprice } = req.body;
+  const image = req.file ? req.file.filename : null;
+  if (!name || !details || !originalprice || !offerprice || !image)
+    return res.status(400).json({ error: "All fields are required." });
 
-    pool.query(
-      "INSERT INTO products (name, details, originalprice, offerprice, image) VALUES (?, ?, ?, ?, ?)",
-      [name, details, originalprice, offerprice, image],
-      (err, result) => {
-        if (err)
-          return res.status(500).json({ error: "Failed to add product" });
-        res.json({
-          message: "Product added successfully",
-          productId: result.insertId,
-        });
-      }
-    );
-  }
-);
+  pool.query(
+    "INSERT INTO products (name, details, originalprice, offerprice, image) VALUES (?, ?, ?, ?, ?)",
+    [name, details, originalprice, offerprice, image],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: "Failed to add product" });
+      res.json({
+        message: "Product added successfully",
+        productId: result.insertId,
+      });
+    }
+  );
+});
 
 app.get("/getproducts", (req, res) => {
   pool.query("SELECT * FROM products", (err, results) => {

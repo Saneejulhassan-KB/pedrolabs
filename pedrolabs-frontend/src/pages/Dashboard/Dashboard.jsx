@@ -23,13 +23,13 @@ function Dashboard() {
 
   // Fetch Registered Users
   const fetchRegisteredUsers = () => {
-    const token = localStorage.getItem("token"); // Get token from localStorage
-  
+    const token = sessionStorage.getItem("token"); // Get token from localStorage
+
     if (!token) {
       console.error("No token found, please login first.");
       return;
     }
-  
+
     axios
       .get(`${baseURL}/getusers`, {
         headers: {
@@ -43,12 +43,11 @@ function Dashboard() {
         console.error("Error fetching users:", error);
         if (error.response && error.response.status === 401) {
           alert("Unauthorized access. Please log in again.");
-          localStorage.removeItem("token"); // Clear token on failure
+          sessionStorage.removeItem("token"); // Clear token on failure
           window.location.href = "/login"; // Redirect to login page
         }
       });
   };
-  
 
   // User Actions
   const handleEditUser = (user) => {
@@ -58,8 +57,18 @@ function Dashboard() {
 
   const handleSaveUser = () => {
     if (selectedUser) {
+      const token = sessionStorage.getItem("token"); // Retrieve the token from localStorage
+      if (!token) {
+        console.error("Token is missing.");
+        return;
+      }
+
       axios
-        .put(`${baseURL}/update/${selectedUser.id}`, selectedUser)
+        .put(`${baseURL}/update/${selectedUser.id}`, selectedUser, {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+          },
+        })
         .then((response) => {
           if (response.data.success) {
             fetchRegisteredUsers();
@@ -77,13 +86,26 @@ function Dashboard() {
 
   const handleDeleteUser = (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
+      const token = sessionStorage.getItem("token"); // Retrieve token from localStorage
+      if (!token) {
+        console.error("Token is missing.");
+        return;
+      }
+
       axios
-        .delete(`${baseURL}/delete/${id}`)
+        .delete(`${baseURL}/delete/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send the token in the header
+          },
+        })
         .then(() => {
-          fetchRegisteredUsers();
+          fetchRegisteredUsers(); // Fetch updated list after deletion
         })
         .catch((error) => {
-          console.error("Error deleting user:", error);
+          console.error(
+            "Error deleting user:",
+            error.response ? error.response.data : error
+          );
         });
     }
   };
@@ -140,7 +162,7 @@ function Dashboard() {
 
   // Initial Data Fetch
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       fetchRegisteredUsers();
     }
@@ -170,36 +192,48 @@ function Dashboard() {
       </div>
 
       {/* Users Table */}
-      
-    {localStorage.getItem("token") ? (
-      <Table striped bordered hover responsive className="text-center">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.fname}</td>
-              <td>{user.lname}</td>
-              <td>{user.email}</td>
-              <td>
-                <Button variant="warning" className="me-2" onClick={() => handleEditUser(user)}>Edit</Button>
-                <Button variant="danger" onClick={() => handleDeleteUser(user.id)}>Delete</Button>
-              </td>
+
+      {sessionStorage.getItem("token") ? (
+        <Table striped bordered hover responsive className="text-center">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Email</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
-    ) : (
-      <p className="text-center">Please log in to view user details.</p>
-    )}
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.id}</td>
+                <td>{user.fname}</td>
+                <td>{user.lname}</td>
+                <td>{user.email}</td>
+                <td>
+                  <Button
+                    variant="warning"
+                    className="me-2 pr-5"
+                    onClick={() => handleEditUser(user)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleDeleteUser(user.id)}
+                    className="pr-5"
+                  >
+                    Delete
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      ) : (
+        <p className="text-center">Please log in to view user details.</p>
+      )}
 
       {/* Edit User Modal */}
       <Modal show={showModal} onHide={handleCloseUserModal}>
