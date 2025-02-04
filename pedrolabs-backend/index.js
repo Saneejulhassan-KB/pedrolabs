@@ -253,14 +253,19 @@ const upload = multer({ storage, fileFilter });
 app.post("/product", upload.single("image"), verifyToken, (req, res) => {
   const { name, details, originalprice, offerprice } = req.body;
   const image = req.file ? req.file.filename : null;
-  if (!name || !details || !originalprice || !offerprice || !image)
+
+  if (!name || !details || !originalprice || !offerprice || !image) {
     return res.status(400).json({ error: "All fields are required." });
+  }
 
   pool.query(
     "INSERT INTO products (name, details, originalprice, offerprice, image) VALUES (?, ?, ?, ?, ?)",
     [name, details, originalprice, offerprice, image],
     (err, result) => {
-      if (err) return res.status(500).json({ error: "Failed to add product" });
+      if (err) {
+        console.error("Database Insert Error:", err); // Log error
+        return res.status(500).json({ error: "Failed to add product", details: err.message });
+      }
       res.json({
         message: "Product added successfully",
         productId: result.insertId,
@@ -268,6 +273,7 @@ app.post("/product", upload.single("image"), verifyToken, (req, res) => {
     }
   );
 });
+
 
 app.get("/getproducts", (req, res) => {
   pool.query("SELECT * FROM products", (err, results) => {
