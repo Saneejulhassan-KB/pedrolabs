@@ -336,6 +336,25 @@ app.put("/updateproduct/:id", upload.single("image"), verifyToken, (req, res) =>
   });
 });
 
+app.get("/getproduct/:id", (req, res) => {
+  const productId = req.params.id;
+
+  pool.query("SELECT * FROM products WHERE id = ?", [productId], (err, results) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(results[0]); // Return the first (and only) product object
+  });
+});
+
+
+
 
 // ********** Start Server **********
 app.listen(3001, () => console.log("Running backend server on port 3001"));
