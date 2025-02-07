@@ -12,6 +12,9 @@ import Test from "./Components/test/Test.jsx";
 import { useState } from "react";
 import ProtectedAdminRoute from "./ProtectedAdminRoute.jsx";
 import UnauthorizedPage from "./UnauthorizedPage.jsx"; // Add the UnauthorizedPage import
+import Cart from "./pages/Cart/Cart.jsx";
+import SingleProduct from "./pages/SingleProduct/SingleProduct.jsx";
+
 
 function App() {
   return (
@@ -27,6 +30,8 @@ function App() {
         </Route>
 
         <Route path="/product" element={<Product />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/product/:id" element={<SingleProduct />} />
         <Route path="/test" element={<Test />} />
         <Route path="/authnew" element={<Authnew />} />
         <Route path="/preloader" element={<Preloader />} />
