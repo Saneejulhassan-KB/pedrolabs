@@ -6,6 +6,7 @@ import "./Product.css";
 import axios from "axios";
 import Preloader from "../../Components/Preloader/Preloader";
 import Header from "../../Components/Header";
+import { useNavigate } from "react-router-dom";
 
 function Product() {
   const [quantities, setQuantities] = useState({});
@@ -13,6 +14,8 @@ function Product() {
   const [cart, setCart] = useState({}); // Track added quantities
   const [userName, setUserName] = useState(""); // userName state
   const baseURL = "http://localhost:3001";
+
+  const navigate = useNavigate();
 
   //
 
@@ -30,7 +33,6 @@ function Product() {
       setCart(JSON.parse(savedCart)); //  Load cart from storage
     }
   }, []);
-  
 
   const handleLogout = () => {
     sessionStorage.removeItem("userName"); // Clear session storage
@@ -39,7 +41,6 @@ function Product() {
     setCart({}); //  Reset cart state in React
     window.location.href = "/authnew"; // Redirect to login page
   };
-  
 
   // Fetch products
   const fetchProducts = () => {
@@ -86,20 +87,19 @@ function Product() {
 
   const handleAddToCart = (product) => {
     const quantity = quantities[product.id] || 1;
-  
+
     setCart((prev) => {
       const updatedCart = {
         ...prev,
         [product.id]: (prev[product.id] || 0) + quantity,
       };
-  
+
       localStorage.setItem("cart", JSON.stringify(updatedCart)); // ✅ Save after updating
       return updatedCart;
     });
-  
+
     alert(`${quantity} ${product.name}(s) added to the cart!`);
   };
-  
 
   // Calculate total items in cart
   const totalItemsInCart = Object.values(cart).reduce(
@@ -116,6 +116,8 @@ function Product() {
           <Col key={product.id}>
             <Card className="product-card mb-4 shadow-sm">
               <Card.Img
+                onClick={() => navigate(`/product/${product.id}`)}
+                style={{ cursor: "pointer" }} // Add pointer cursor
                 variant="top"
                 src={`${baseURL}/uploads/${product.image}`}
                 alt={product.name}

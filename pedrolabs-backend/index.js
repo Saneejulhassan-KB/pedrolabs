@@ -276,7 +276,9 @@ app.post("/product", upload.single("image"), verifyToken, (req, res) => {
     (err, result) => {
       if (err) {
         console.error("Database Insert Error:", err); // Log error
-        return res.status(500).json({ error: "Failed to add product", details: err.message });
+        return res
+          .status(500)
+          .json({ error: "Failed to add product", details: err.message });
       }
       res.json({
         message: "Product added successfully",
@@ -285,7 +287,6 @@ app.post("/product", upload.single("image"), verifyToken, (req, res) => {
     }
   );
 });
-
 
 app.get("/getproducts", (req, res) => {
   pool.query("SELECT * FROM products", (err, results) => {
@@ -296,7 +297,6 @@ app.get("/getproducts", (req, res) => {
     res.status(200).json({ success: true, data: results });
   });
 });
-
 
 app.delete("/deleteproduct/:id", verifyToken, verifyAdmin, (req, res) => {
   pool.query(
@@ -311,6 +311,62 @@ app.delete("/deleteproduct/:id", verifyToken, verifyAdmin, (req, res) => {
     }
   );
 });
+
+app.put("/updateproduct/:id", upload.single("image"), verifyToken, (req, res) => {
+  const { name, details, originalprice, offerprice } = req.body;
+  const image = req.file ? req.file.filename : null;
+
+  if (!name || !details || !originalprice || !offerprice)
+    return res.status(400).json({ success: false, message: "All fields except image are required." });
+
+  // First, get the current image filename from the database
+  pool.query("SELECT image FROM products WHERE id = ?", [req.params.id], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: "Database error." });
+    }
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Product not found." });
+    }
+
+    const oldImage = rows[0].image;
+    const finalImage = image || oldImage; // Keep the old image if no new one is provided
+
+    // Update the product details
+    pool.query(
+      "UPDATE products SET name = ?, details = ?, originalprice = ?, offerprice = ?, image = ? WHERE id = ?",
+      [name, details, originalprice, offerprice, finalImage, req.params.id],
+      (updateErr, result) => {
+        if (updateErr) {
+          return res.status(500).json({ success: false, message: "Database error." });
+        }
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ success: false, message: "Product not found." });
+        }
+        res.status(200).json({ success: true, message: "Product updated successfully." });
+      }
+    );
+  });
+});
+
+app.get("/getproduct/:id", (req, res) => {
+  const productId = req.params.id;
+
+  pool.query("SELECT * FROM products WHERE id = ?", [productId], (err, results) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(results[0]); // Return the first (and only) product object
+  });
+});
+
+
+
 
 // ********** Start Server **********
 app.listen(3001, () => console.log("Running backend server on port 3001"));
