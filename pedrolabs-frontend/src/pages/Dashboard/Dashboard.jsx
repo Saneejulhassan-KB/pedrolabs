@@ -23,12 +23,6 @@ function Dashboard() {
   const [originalprice, setOriginalprice] = useState("");
   const [offerprice, setOfferprice] = useState("");
 
-
-  const userRole = sessionStorage.getItem("role");
-  const userName = sessionStorage.getItem("userName");
-  const userEmail = sessionStorage.getItem("userEmail");
-  const token = sessionStorage.getItem("token");
-
   // Fetch Registered Users
   const fetchRegisteredUsers = () => {
     const token = sessionStorage.getItem("token");
@@ -49,7 +43,7 @@ function Dashboard() {
       })
       .catch((error) => {
         console.error("Error fetching users:", error);
-        if (error.response?.status === 401) {
+        if (error.response && error.response.status === 401) {
           alert("Unauthorized access. Please log in again.");
           sessionStorage.removeItem("token");
           window.location.href = "/login";
@@ -114,9 +108,6 @@ function Dashboard() {
         });
     }
   };
-
-
-
 
   const handleDeleteUser = (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
