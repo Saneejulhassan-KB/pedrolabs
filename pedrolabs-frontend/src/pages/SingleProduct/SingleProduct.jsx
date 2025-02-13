@@ -11,43 +11,74 @@ function SingleProduct() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [quantity, setQuantity] = useState(1); // State to manage quantity
+  const [quantity, setQuantity] = useState(0);
   const [userName, setUserName] = useState("");
-  const [cart, setCart] = useState({}); // Track added quantities
+  const [cart, setCart] = useState({});
 
   const baseURL = "http://localhost:3001";
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const response = await axios.get(`${baseURL}/getproduct/${id}`);
-        if (response.data) {
-          setProduct(response.data);
-        } else {
-          setError("Product not found");
-        }
-      } catch (err) {
-        console.error("Error fetching product details:", err);
-        setError("Failed to load product");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const name = sessionStorage.getItem("userName");
+    if (name) {
+      setUserName(name);
+    }
 
-    fetchProduct();
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      const fetchProduct = async () => {
+        try {
+          const response = await axios.get(`${baseURL}/getproduct/${id}`);
+          if (response.data) {
+            setProduct(response.data);
+          } else {
+            setError("Product not found");
+          }
+        } catch (err) {
+          console.error("Error fetching product details:", err);
+          setError("Failed to load product");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProduct();
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, [id]);
 
   const handleLogout = () => {
     sessionStorage.clear();
-    sessionStorage.removeItem("userName"); // Clear session storage
-    localStorage.removeItem("cart"); //  Clear cart from localStorage
-    setUserName(""); // Reset the userName state
-    setCart({}); //  Reset cart state in React
-    window.location.href = "/authnew"; // Redirect to login page
+    localStorage.removeItem("cart");
+    setUserName("");
+    setCart({});
+    window.location.href = "/authnew";
   };
 
-  const handleIncrement = () => setQuantity(quantity + 1);
-  const handleDecrement = () => setQuantity(quantity > 1 ? quantity - 1 : 1);
+  // Increment & Decrement Functions
+  const handleIncrement = () => setQuantity((prev) => prev + 1);
+  const handleDecrement = () =>
+    setQuantity((prev) => (prev > 0 ? prev - 1 : 0));
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const updatedCart = {
+      ...cart,
+      [product.id]: (cart[product.id] || 0) + quantity,
+    };
+
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+    alert(`${quantity} ${product.name}(s) added to the cart!`);
+  };
 
   if (loading) return <Preloader />;
   if (error) return <h3 className="text-center text-danger">{error}</h3>;
@@ -97,12 +128,8 @@ function SingleProduct() {
                       type="number"
                       value={quantity}
                       readOnly
-                      className="mx-2 text-center d-flex justify-content-center "
-                      style={{
-                        width: "50px",
-                        borderRadius: "5px",
-                        whiteSpace: "nowrap",
-                      }}
+                      className="mx-2 text-center"
+                      style={{ width: "50px", borderRadius: "5px" }}
                     />
                     <Button
                       variant="outline-secondary"
@@ -117,6 +144,7 @@ function SingleProduct() {
                     variant="success"
                     size="lg"
                     className="mt-3 w-100 d-flex justify-content-center"
+                    onClick={handleAddToCart}
                   >
                     Add to Cart
                   </Button>
