@@ -14,106 +14,115 @@ import "./Cart.css";
 import axios from "axios";
 
 function Cart() {
-  const [products, setProducts] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
   const baseURL = "http://localhost:3001";
 
   // fetch products
 
-  const fetchProducts = () => {
-    axios
-      .get(`${baseURL}/getproducts`)
-      .then((response) => {
-        setProducts(response.data.data || []);
-      })
-      .catch((error) => {
-        console.error("error fetching products:", error);
+  const fetchCartProducts = async () => {
+    const token = sessionStorage.getItem("token");
+  
+    if (!token) {
+      console.warn("No user token found, clearing cart.");
+      setCartItems([]); // Clear cart items when no token is found
+      return;
+    }
+  
+    try {
+      const response = await axios.get(`${baseURL}/getcart`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+  
+      if (response.data.success) {
+        setCartItems(response.data.cart);
+        localStorage.setItem("cart", JSON.stringify(response.data.cart)); // Store latest cart data
+      }
+    } catch (error) {
+      console.error("Error fetching cart from database:", error);
+    }
   };
+  
+  
+  useEffect(() => {
+    fetchCartProducts();
+  }, []);
+  
+
+  const getTotal = () => {
+    return cartItems.reduce(
+      (total, item) => total + item.offerprice * item.quantity,
+      0
+    );
+  };
+
+  const updateQuantity = async (id, change) => {
+    const token = sessionStorage.getItem("token");
+  
+    try {
+      const updatedCart = cartItems.map((product) =>
+        product.id === id
+          ? { ...product, quantity: Math.max(1, product.quantity + change) }
+          : product
+      );
+  
+      // Update state immediately for smooth UI response
+      setCartItems(updatedCart);
+  
+      // Send update request to backend
+      await axios.put(
+        `${baseURL}/updatecart`,
+        { productId: id, quantity: change },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      localStorage.setItem("cart", JSON.stringify(updatedCart));
+    } catch (error) {
+      console.error("Error updating cart quantity:", error);
+    }
+  };
+  
+  
 
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
+  
     if (savedCart) {
       try {
-        const parsedCart = JSON.parse(savedCart);
-        console.log("Loaded cart:", parsedCart);
-        if (Array.isArray(parsedCart)) {
-          setProducts(parsedCart); // Ensure it's an array
-        } else {
-          console.error("Cart data format is incorrect.");
+        const parsedCart = JSON.parse(savedCart); // Retrieve and parse cart data
+  
+        if (parsedCart && typeof parsedCart === "object") {
+          const cartArray = Object.values(parsedCart); // Convert object to array
+          setCartItems(cartArray);
         }
       } catch (error) {
         console.error("Error parsing cart data:", error);
       }
     }
   }, []);
+  
 
-  const cartItems = [
-    {
-      name: "VATS Vein Finder",
-      price: 3000,
-      quantity: 1,
-      image:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQZmfhpVHfm2uIPubPG7eipdbV-uBe18a9pg&s",
-    },
-    {
-      name: "BPL Medical Technologies Breather",
-      price: 2000,
-      quantity: 1,
-      image:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQZmfhpVHfm2uIPubPG7eipdbV-uBe18a9pg&s",
-    },
-  ];
-
-  const similarProducts = [
-    {
-      name: "Philips HeartStart AED",
-      price: 4500,
-      image: "https://via.placeholder.com/150",
-    },
-    {
-      name: "Omron Blood Pressure Monitor",
-      price: 1800,
-      image: "https://via.placeholder.com/150",
-    },
-    {
-      name: "Welch Allyn Otoscope",
-      price: 3500,
-      image: "https://via.placeholder.com/150",
-    },
-  ];
-
-  const getTotal = () => {
-    return products.reduce(
-      (total, item) => total + item.offerprice * item.quantity,
-      0
-    );
+  const handleRemove = async (id) => {
+    const token = sessionStorage.getItem("token");
+  
+    try {
+      await axios.delete(`${baseURL}/removecart/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      const updatedCart = cartItems.filter((product) => product.id !== id);
+      setCartItems(updatedCart);
+      localStorage.setItem("cart", JSON.stringify(updatedCart));
+    } catch (error) {
+      console.error("Error removing item from cart:", error);
+    }
   };
-
-  const updateQuantity = (id, change) => {
-    setProducts((prev) => {
-      const updatedProducts = prev.map((product) =>
-        product.id === id
-          ? { ...product, quantity: Math.max(1, product.quantity + change) }
-          : product
-      );
-
-      localStorage.setItem("cart", JSON.stringify(updatedProducts)); // Store as an array
-      return updatedProducts;
-    });
-  };
-
-  const handleRemove = (id) => {
-    setProducts((prev) => {
-      const updatedProducts = prev.filter((product) => product.id !== id);
-      localStorage.setItem("cart", JSON.stringify(updatedProducts)); // Store as an array
-      return updatedProducts;
-    });
-  };
+  
+  
 
   return (
     <Container className="cart-container p-4 shadow-lg rounded">
       <h2 className="cart-title text-center mb-4">Shopping Cart</h2>
-      {products.length === 0 ? (
+      {cartItems.length === 0 ? (
         <p className="empty-cart text-center">Your cart is empty.</p>
       ) : (
         <Table
@@ -133,7 +142,7 @@ function Cart() {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {cartItems.map((product) => (
               <tr key={product.id}>
                 <td className="cart-item d-flex align-items-center gap-3">
                   <Image
@@ -149,6 +158,7 @@ function Cart() {
                     variant="outline-primary"
                     size="sm"
                     onClick={() => updateQuantity(product.id, -1)}
+                    
                   >
                     -
                   </Button>
@@ -167,6 +177,7 @@ function Cart() {
                     variant="danger"
                     size="sm"
                     onClick={() => handleRemove(product.id)}
+                    style={{paddingRight:'65px'}}
                   >
                     Remove
                   </Button>
@@ -209,7 +220,7 @@ function Cart() {
           </Button>
         </Form>
       </div>
-      <div className="similar-products-section mt-5 p-4 shadow-sm rounded bg-light">
+      {/* <div className="similar-products-section mt-5 p-4 shadow-sm rounded bg-light">
         <h3 className="text-center mb-3">Similar Products</h3>
         <Row className="g-4">
           {similarProducts.map((product, index) => (
@@ -230,7 +241,7 @@ function Cart() {
             </Col>
           ))}
         </Row>
-      </div>
+      </div> */}
     </Container>
   );
 }

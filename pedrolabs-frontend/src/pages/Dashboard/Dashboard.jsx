@@ -139,21 +139,20 @@ function Dashboard() {
     }
   };
 
-
   const handleSaveProduct = async (e) => {
     e.preventDefault();
-  
+
     if (!name || !details || !originalprice || !offerprice) {
       setRegisterStatus("Please fill out all fields.");
       return;
     }
-  
+
     const token = sessionStorage.getItem("token");
     if (!token) {
       console.error("No token found, please login first.");
       return;
     }
-  
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("details", details);
@@ -162,15 +161,15 @@ function Dashboard() {
     if (photo) {
       formData.append("image", photo); // Append the image file if updated
     }
-  
+
     // Debug: Log formData contents
     for (let pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
-  
+
     try {
       const response = await axios.put(
-        `${baseURL}/updateproduct/${selectedProduct.id}`,  // Ensure correct API route
+        `${baseURL}/updateproduct/${selectedProduct.id}`, // Ensure correct API route
         formData,
         {
           headers: {
@@ -179,7 +178,7 @@ function Dashboard() {
           },
         }
       );
-  
+
       if (response.data.success) {
         setRegisterStatus("Product updated successfully.");
         setShowProductModal(false);
@@ -192,8 +191,6 @@ function Dashboard() {
       setRegisterStatus("An error occurred. Please try again later.");
     }
   };
-  
-  
 
   const handleDeleteProduct = (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
@@ -227,7 +224,6 @@ function Dashboard() {
     setOfferprice(product.offerprice);
     setShowProductModal(true);
   };
-  
 
   const handleCloseProductModal = () => {
     setShowProductModal(false);
@@ -288,7 +284,7 @@ function Dashboard() {
   return (
     <div>
       <Header userName={userName} handleLogout={handleLogout} cart={cart} />
-      <Container className="dashboard-container" style={{marginTop:'120px'}}>
+      <Container className="dashboard-container" style={{ marginTop: "120px" }}>
         <h2 className="text-center my-4">Admin Dashboard</h2>
 
         {/* Tab buttons */}
@@ -333,7 +329,6 @@ function Dashboard() {
               >
                 Add Product
               </Button>
-              
             </div>
 
             <Table striped bordered hover responsive className="text-center">
@@ -398,7 +393,6 @@ function Dashboard() {
               >
                 Add Product
               </Button>
-              
             </div>
 
             <Table striped bordered hover responsive className="text-center">
@@ -521,78 +515,85 @@ function Dashboard() {
         </Modal>
 
         {/* Edit Product Modal */}
-<Modal show={showProductModal} onHide={handleCloseProductModal}>
-  <Modal.Header closeButton>
-    <Modal.Title>Edit Product</Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    <Form onSubmit={handleSaveProduct}>
-      <Form.Group controlId="formProductName">
-        <Form.Label>Product Name</Form.Label>
-        <Form.Control
-          type="text"
-          placeholder="Enter product name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </Form.Group>
+        <Modal show={showProductModal} onHide={handleCloseProductModal}>
+          <Modal.Header closeButton>
+            <Modal.Title>Edit Product</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={handleSaveProduct}>
+              <Form.Group controlId="formProductName">
+                <Form.Label>Product Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter product name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </Form.Group>
 
-      <Form.Group controlId="formProductDetails">
-        <Form.Label>Details</Form.Label>
-        <Form.Control
-          as="textarea"
-          placeholder="Enter product details"
-          value={details}
-          onChange={(e) => setDetails(e.target.value)}
-        />
-      </Form.Group>
+              <Form.Group controlId="formProductDetails">
+                <Form.Label>Details</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  placeholder="Enter product details"
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                />
+              </Form.Group>
 
-      <Form.Group controlId="formProductPhoto">
-        <Form.Label>Upload New Image (Optional)</Form.Label>
-        <Form.Control
-          type="file"
-          onChange={(e) => setPhoto(e.target.files[0])}
-        />
-        {selectedProduct?.image && (
-          <img
-            src={`${baseURL}/uploads/${selectedProduct.image}`}
-            alt="Current"
-            style={{ width: "100px", marginTop: "10px" }}
-          />
-        )}
-      </Form.Group>
+              <Form.Group controlId="formProductPhoto">
+                <Form.Label>Upload New Image (Optional)</Form.Label>
+                <Form.Control
+                  type="file"
+                  onChange={(e) => setPhoto(e.target.files[0])}
+                />
+                {selectedProduct?.image && (
+                  <img
+                    src={`${baseURL}/uploads/${selectedProduct.image}`}
+                    alt="Current"
+                    style={{ width: "100px", marginTop: "10px" }}
+                  />
+                )}
+              </Form.Group>
 
-      <Form.Group controlId="formOriginalPrice">
-        <Form.Label>Original Price</Form.Label>
-        <Form.Control
-          type="number"
-          placeholder="Enter original price"
-          value={originalprice}
-          onChange={(e) => setOriginalprice(e.target.value)}
-        />
-      </Form.Group>
+              <Form.Group controlId="formOriginalPrice">
+                <Form.Label>Original Price</Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="Enter original price"
+                  value={originalprice}
+                  onChange={(e) => setOriginalprice(e.target.value)}
+                />
+              </Form.Group>
 
-      <Form.Group controlId="formOfferPrice">
-        <Form.Label>Offer %</Form.Label>
-        <Form.Control
-          type="number"
-          placeholder="Enter offer price"
-          value={offerprice}
-          onChange={(e) => setOfferprice(e.target.value)}
-        />
-      </Form.Group>
-    </Form>
-  </Modal.Body>
-  <Modal.Footer>
-    <Button variant="secondary" onClick={handleCloseProductModal} className="pr-5">
-      Close
-    </Button>
-    <Button variant="primary" onClick={handleSaveProduct} className="pr-5">
-      Save
-    </Button>
-  </Modal.Footer>
-</Modal>
-
+              <Form.Group controlId="formOfferPrice">
+                <Form.Label>Offer %</Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="Enter offer price"
+                  value={offerprice}
+                  onChange={(e) => setOfferprice(e.target.value)}
+                />
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={handleCloseProductModal}
+              className="pr-5"
+            >
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveProduct}
+              className="pr-5"
+            >
+              Save
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Container>
     </div>
   );
