@@ -11,10 +11,10 @@ import Product from "./pages/productPage/Product.jsx";
 import Test from "./Components/test/Test.jsx";
 import { useState } from "react";
 import ProtectedAdminRoute from "./ProtectedAdminRoute.jsx";
+import ProtectedUserRoute from "./ProtectedUserRoute.jsx";
 import UnauthorizedPage from "./UnauthorizedPage.jsx"; // Add the UnauthorizedPage import
 import Cart from "./pages/Cart/Cart.jsx";
 import SingleProduct from "./pages/SingleProduct/SingleProduct.jsx";
-
 
 function App() {
   return (
@@ -23,14 +23,17 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/services" element={<Services />} />
-        
+
         {/* Protected admin routes */}
         <Route element={<ProtectedAdminRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
 
         <Route path="/product" element={<Product />} />
-        <Route path="/cart" element={<Cart />} />
+        {/* Protected User Route */}
+        <Route element={<ProtectedUserRoute />}>
+          <Route path="/cart" element={<Cart />} />
+        </Route>
         <Route path="/product/:id" element={<SingleProduct />} />
         <Route path="/test" element={<Test />} />
         <Route path="/authnew" element={<Authnew />} />

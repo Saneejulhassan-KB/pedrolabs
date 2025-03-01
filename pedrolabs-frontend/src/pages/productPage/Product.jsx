@@ -36,11 +36,13 @@ function Product() {
 
   const handleLogout = () => {
     sessionStorage.removeItem("userName"); // Clear session storage
-    localStorage.removeItem("cart"); //  Clear cart from localStorage
+    sessionStorage.removeItem("token"); // Remove token
+    localStorage.removeItem("cart"); // Clear cart from localStorage
     setUserName(""); // Reset the userName state
-    setCart({}); //  Reset cart state in React
+    setCart({}); // Reset cart state in React
     window.location.href = "/authnew"; // Redirect to login page
   };
+  
 
   // Fetch products
   const fetchProducts = () => {
@@ -85,21 +87,71 @@ function Product() {
     }));
   };
 
+  // const handleAddToCart = (product) => {
+  //   const quantity = quantities[product.id] || 1;
+  
+  //   setCart((prev) => {
+  //     const updatedCart = {
+  //       ...prev,
+  //       [product.id]: {
+  //         ...product,
+  //         quantity: (prev[product.id]?.quantity || 0) + quantity,
+  //       },
+  //     };
+  
+  //     localStorage.setItem("cart", JSON.stringify(updatedCart)); // Save entire product details
+  //     return updatedCart;
+  //   });
+  
+  //   alert(`${quantity} ${product.name}(s) added to the cart!`);
+  // };
+
   const handleAddToCart = (product) => {
     const quantity = quantities[product.id] || 1;
-
-    setCart((prev) => {
-      const updatedCart = {
-        ...prev,
-        [product.id]: (prev[product.id] || 0) + quantity,
-      };
-
-      localStorage.setItem("cart", JSON.stringify(updatedCart)); // ✅ Save after updating
-      return updatedCart;
-    });
-
-    alert(`${quantity} ${product.name}(s) added to the cart!`);
+    const token = sessionStorage.getItem("token");
+  
+    console.log("Adding to cart:", { productId: product.id, quantity, token });
+  
+    axios
+      .post(
+        `${baseURL}/addtocart`,
+        { productId: product.id, quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then((response) => {
+        alert(`${quantity} ${product.name}(s) added to the cart!`);
+        console.log("Cart updated:", response.data);
+  
+        setCart((prev) => {
+          const updatedCart = {
+            ...prev,
+            [product.id]: {
+              ...product,
+              quantity: (prev[product.id]?.quantity || 0) + quantity,
+            },
+          };
+          localStorage.setItem("cart", JSON.stringify(updatedCart));
+          return updatedCart;
+        });
+      })
+      .catch((error) => {
+        console.error("Error adding to cart:", error);
+  
+        if (error.response) {
+          console.error("Response Data:", error.response.data);
+        }
+  
+        if (error.response && error.response.status === 401) {
+          alert("Session expired. Please log in again.");
+          sessionStorage.clear();
+          localStorage.clear();
+          window.location.href = "/authnew";
+        }
+      });
   };
+  
+  
+  
 
   // Calculate total items in cart
   const totalItemsInCart = Object.values(cart).reduce(

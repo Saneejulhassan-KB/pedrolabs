@@ -54,7 +54,7 @@ function Header({ userName, handleLogout, cart }) {
           <Navbar.Brand>
             <Link to="/">
               <img
-                src="./logo.png"
+                src="/logo.png"
                 alt="Logo"
                 className="img-fluid"
                 width={"60px"}
@@ -123,32 +123,36 @@ function Header({ userName, handleLogout, cart }) {
               />
             </Form>
             <div className="icon-div">
-              <Link to="/dashboard"><i class="fa-solid fa-list-check"></i></Link> 
-
-              <i
-                className="fa-solid fa-cart-shopping"
-                onClick={handleNavItemClick}
-                style={{ position: "relative" }}
-              >
-                {/* Cart Icon */}
-
-                <span
-                  className="cart-count"
-                  style={{
-                    position: "absolute",
-                    top: "-10px",
-                    right: "-10px",
-                    backgroundColor: "red",
-                    color: "white",
-                    borderRadius: "50%",
-                    padding: "5px 10px",
-                    fontSize: "8px",
-                    display: totalCartCount > 0 ? "inline-block" : "none", // Hide when empty
-                  }}
+              <Link to="/dashboard">
+                <i class="fa-solid fa-list-check"></i>
+              </Link>
+              <Link to="/cart">
+                <i
+                  className="fa-solid fa-cart-shopping"
+                  onClick={handleNavItemClick}
+                  style={{ position: "relative" }}
                 >
-                  {totalCartCount}
-                </span>
-              </i>
+                  {/* Cart Icon */}
+
+                  <span
+                    className="cart-count"
+                    style={{
+                      position: "absolute",
+                      top: "-10px",
+                      right: "-10px",
+                      backgroundColor: "red",
+                      color: "white",
+                      borderRadius: "50%",
+                      padding: "5px 10px",
+                      fontSize: "8px",
+                      display: totalCartCount > 0 ? "inline-block" : "none", // Hide when empty
+                    }}
+                  >
+                    {totalCartCount}
+                  </span>
+                </i>
+              </Link>
+
               {userName ? (
                 <button
                   style={{

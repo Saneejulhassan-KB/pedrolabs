@@ -300,60 +300,208 @@ app.delete("/deleteproduct/:id", verifyToken, verifyAdmin, (req, res) => {
   );
 });
 
-app.put("/updateproduct/:id", upload.single("image"), verifyToken, (req, res) => {
-  const { name, details, originalprice, offerprice } = req.body;
-  const image = req.file ? req.file.filename : null;
+app.put(
+  "/updateproduct/:id",
+  upload.single("image"),
+  verifyToken,
+  (req, res) => {
+    const { name, details, originalprice, offerprice } = req.body;
+    const image = req.file ? req.file.filename : null;
 
-  if (!name || !details || !originalprice || !offerprice)
-    return res.status(400).json({ success: false, message: "All fields except image are required." });
+    if (!name || !details || !originalprice || !offerprice)
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "All fields except image are required.",
+        });
 
-  // First, get the current image filename from the database
-  pool.query("SELECT image FROM products WHERE id = ?", [req.params.id], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: "Database error." });
-    }
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: "Product not found." });
-    }
-
-    const oldImage = rows[0].image;
-    const finalImage = image || oldImage; // Keep the old image if no new one is provided
-
-    // Update the product details
+    // First, get the current image filename from the database
     pool.query(
-      "UPDATE products SET name = ?, details = ?, originalprice = ?, offerprice = ?, image = ? WHERE id = ?",
-      [name, details, originalprice, offerprice, finalImage, req.params.id],
-      (updateErr, result) => {
-        if (updateErr) {
-          return res.status(500).json({ success: false, message: "Database error." });
+      "SELECT image FROM products WHERE id = ?",
+      [req.params.id],
+      (err, rows) => {
+        if (err) {
+          return res
+            .status(500)
+            .json({ success: false, message: "Database error." });
         }
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ success: false, message: "Product not found." });
+        if (rows.length === 0) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Product not found." });
         }
-        res.status(200).json({ success: true, message: "Product updated successfully." });
+
+        const oldImage = rows[0].image;
+        const finalImage = image || oldImage; // Keep the old image if no new one is provided
+
+        // Update the product details
+        pool.query(
+          "UPDATE products SET name = ?, details = ?, originalprice = ?, offerprice = ?, image = ? WHERE id = ?",
+          [name, details, originalprice, offerprice, finalImage, req.params.id],
+          (updateErr, result) => {
+            if (updateErr) {
+              return res
+                .status(500)
+                .json({ success: false, message: "Database error." });
+            }
+            if (result.affectedRows === 0) {
+              return res
+                .status(404)
+                .json({ success: false, message: "Product not found." });
+            }
+            res
+              .status(200)
+              .json({
+                success: true,
+                message: "Product updated successfully.",
+              });
+          }
+        );
       }
     );
-  });
-});
+  }
+);
 
 app.get("/getproduct/:id", (req, res) => {
   const productId = req.params.id;
 
-  pool.query("SELECT * FROM products WHERE id = ?", [productId], (err, results) => {
-    if (err) {
-      console.error("Database Error:", err);
-      return res.status(500).json({ error: "Internal server error" });
-    }
+  pool.query(
+    "SELECT * FROM products WHERE id = ?",
+    [productId],
+    (err, results) => {
+      if (err) {
+        console.error("Database Error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
 
-    if (results.length === 0) {
-      return res.status(404).json({ error: "Product not found" });
-    }
+      if (results.length === 0) {
+        return res.status(404).json({ error: "Product not found" });
+      }
 
-    res.json(results[0]); // Return the first (and only) product object
-  });
+      res.json(results[0]); // Return the first (and only) product object
+    }
+  );
+});
+
+// ********** save the cart data **********
+app.post("/addtocart", verifyToken, (req, res) => {
+  const { productId, quantity } = req.body;
+  const userId = req.user?.userId; // Ensure userId is being received
+
+  console.log("Received add to cart request:", { userId, productId, quantity });
+
+  if (!productId || !quantity) {
+    console.error("Missing productId or quantity");
+    return res.status(400).json({ success: false, message: "Product and quantity are required." });
+  }
+
+  // Check if the product is already in the cart
+  pool.query(
+    "SELECT * FROM carts WHERE user_id = ? AND product_id = ?",
+    [userId, productId],
+    (err, results) => {
+      if (err) {
+        console.error("Database error in SELECT query:", err);
+        return res.status(500).json({ success: false, message: "Database error." });
+      }
+
+      if (results.length > 0) {
+        // If product exists, update quantity
+        pool.query(
+          "UPDATE carts SET quantity = quantity + ? WHERE user_id = ? AND product_id = ?",
+          [quantity, userId, productId],
+          (updateErr) => {
+            if (updateErr) {
+              console.error("Failed to update cart:", updateErr);
+              return res.status(500).json({ success: false, message: "Failed to update cart." });
+            }
+            console.log("Cart updated successfully");
+            return res.status(200).json({ success: true, message: "Cart updated successfully." });
+          }
+        );
+      } else {
+        // Insert new entry
+        pool.query(
+          "INSERT INTO carts (user_id, product_id, quantity) VALUES (?, ?, ?)",
+          [userId, productId, quantity],
+          (insertErr) => {
+            if (insertErr) {
+              console.error("Failed to add product to cart:", insertErr);
+              return res.status(500).json({ success: false, message: "Failed to add product to cart." });
+            }
+            console.log("Product added to cart successfully");
+            return res.status(200).json({ success: true, message: "Product added to cart successfully." });
+          }
+        );
+      }
+    }
+  );
 });
 
 
+
+// ********** Fetch cart details **********
+app.get("/getcart", verifyToken, (req, res) => {
+  const userId = req.user.userId; // Extract user ID from token
+
+  console.log("Fetching cart for user:", userId);
+
+  pool.query(
+    "SELECT p.*, c.quantity FROM carts c JOIN products p ON c.product_id = p.id WHERE c.user_id = ?",
+    [userId],
+    (err, results) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ success: false, message: "Database error." });
+      }
+
+      console.log("Cart fetched successfully:", results);
+      res.status(200).json({ success: true, cart: results });
+    }
+  );
+});
+
+// ********** update cart details **********
+app.put("/updatecart", verifyToken, (req, res) => {
+  const { productId, quantity } = req.body;
+  const userId = req.user.userId;
+
+  console.log("Updating cart:", { userId, productId, quantity });
+
+  pool.query(
+    "UPDATE carts SET quantity = quantity + ? WHERE user_id = ? AND product_id = ?",
+    [quantity, userId, productId],
+    (err, result) => {
+      if (err) {
+        console.error("Failed to update cart:", err);
+        return res.status(500).json({ success: false, message: "Database error." });
+      }
+      res.status(200).json({ success: true, message: "Cart updated successfully." });
+    }
+  );
+});
+
+
+// ********** delete cart details **********
+app.delete("/removecart/:productId", verifyToken, (req, res) => {
+  const userId = req.user.userId;
+  const productId = req.params.productId;
+
+  console.log("Removing item from cart:", { userId, productId });
+
+  pool.query(
+    "DELETE FROM carts WHERE user_id = ? AND product_id = ?",
+    [userId, productId],
+    (err, result) => {
+      if (err) {
+        console.error("Failed to remove cart item:", err);
+        return res.status(500).json({ success: false, message: "Database error." });
+      }
+      res.status(200).json({ success: true, message: "Product removed from cart." });
+    }
+  );
+});
 
 
 // ********** Start Server **********
