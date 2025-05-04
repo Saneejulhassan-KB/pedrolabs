@@ -13,6 +13,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
 
+app.use(bodyParser.json());
+
+
 app.use(
   cors({
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -23,11 +26,15 @@ app.use(
 // MySQL Connection Pool
 const pool = mysql.createPool({
   connectionLimit: 10,
-  user: "root",
-  host: "localhost",
-  password: "Admin@1998", // Update with your credentials
+  user: "admin",
+  host: "mydb.cb0qmoqugx66.ap-south-1.rds.amazonaws.com",
+  password: "Admin123", // Update with your credentials
   database: "pedrolabsdb",
 });
+
+
+const util = require('util')
+pool.query = util.promisify(pool.query)
 
 // ********** User Registration **********
 app.post("/register", async (req, res) => {
@@ -154,6 +161,31 @@ const verifyToken = (req, res, next) => {
     next();
   });
 };
+
+
+// const verifyToken = (req, res, next) => {
+//   const authHeader = req.headers.authorization;
+//   if (!authHeader)
+//     return res.status(403).json({ success: false, message: "Access denied." });
+
+//   const tokenParts = authHeader.split(" ");
+//   if (tokenParts.length !== 2 || tokenParts[0] !== "Bearer")
+//     return res.status(401).json({ success: false, message: "Invalid token format." });
+
+//   const token = tokenParts[1];
+
+//   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+//     if (err)
+//       return res.status(401).json({ success: false, message: "Invalid token." });
+
+//     req.user = decoded; // Attach user data to request object
+//     next();
+//   });
+// };
+
+
+module.exports = verifyToken;
+
 
 const verifyAdmin = (req, res, next) => {
   if (req.user.role !== "admin")
@@ -502,6 +534,98 @@ app.delete("/removecart/:productId", verifyToken, (req, res) => {
     }
   );
 });
+
+
+// order
+
+app.post('/checkout', verifyToken, (req, res) => {
+  const userId = req.user?.userId;
+  const cartItems = req.body.cart;
+
+  if (!userId || !Array.isArray(cartItems) || cartItems.length === 0) {
+    return res.status(400).json({ success: false, message: "Invalid checkout data." });
+  }
+
+  // Step 1: Create the order with status 'pending'
+  pool.query(
+    "INSERT INTO orders (user_id, status) VALUES (?, ?)",
+    [userId, 'pending'],
+    (err, result) => {
+      if (err) {
+        console.error("Error creating order:", err);
+        return res.status(500).json({ success: false, message: "Error creating order." });
+      }
+
+      const orderId = result.insertId;
+
+      // Step 2: Insert order items
+      const orderItems = cartItems.map(item => [orderId, item.id, item.quantity, item.offerprice]);
+
+      pool.query(
+        "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?",
+        [orderItems],
+        (itemErr) => {
+          if (itemErr) {
+            console.error("Error inserting order items:", itemErr);
+            return res.status(500).json({ success: false, message: "Failed to store order items." });
+          }
+
+          // Step 3: Clear the user's cart (optional but recommended)
+          pool.query(
+            "DELETE FROM carts WHERE user_id = ?",
+            [userId],
+            (clearErr) => {
+              if (clearErr) {
+                console.warn("Order created but cart not cleared:", clearErr);
+              }
+
+              return res.status(200).json({ success: true, message: "Order placed successfully." });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+
+
+
+app.get('/getorderlist', verifyToken, (req, res) => {
+  const userId = req.user?.userId;
+
+  const query = `
+    SELECT 
+      orders.id AS order_id,
+      orders.created_at,
+      orders.status,
+      order_items.quantity,
+      order_items.price,
+      products.name AS product_name,
+      products.image AS product_image
+    FROM 
+      orders
+    JOIN 
+      order_items ON orders.id = order_items.order_id
+    JOIN 
+      products ON order_items.product_id = products.id
+    WHERE 
+      orders.user_id = ?
+    ORDER BY 
+      orders.created_at DESC
+  `;
+
+  pool.query(query, [userId], (err, result) => {
+    if (err) {
+      console.error("Error fetching orders:", err);
+      return res.status(500).json({ success: false, message: "Error fetching orders." });
+    }
+
+    res.status(200).json({ success: true, message: "Orders fetched successfully", result });
+  });
+});
+
+
 
 
 // ********** Start Server **********

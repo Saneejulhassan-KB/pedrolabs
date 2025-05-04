@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   Container,
   Row,
@@ -117,6 +119,39 @@ function Cart() {
     }
   };
   
+
+  const navigate = useNavigate();
+
+  const handleCheckout = async () => {
+    const token = sessionStorage.getItem("token");
+  
+    if (!token) {
+      alert("Please log in to proceed.");
+      return;
+    }
+  
+    try {
+      const response = await axios.post(
+        `${baseURL}/checkout`,
+        { cart: cartItems },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      if (response.data.success) {
+        alert("Order placed successfully!");
+        setCartItems([]);
+        localStorage.removeItem("cart");
+        navigate("/"); // ✅ Redirect to home
+      } else {
+        alert("Checkout failed: " + response.data.message);
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert("An error occurred while processing your order.");
+    }
+  };
+  
+  
   
 
   return (
@@ -215,33 +250,13 @@ function Cart() {
             <Form.Label>Cardholder Name</Form.Label>
             <Form.Control type="text" placeholder="Enter name on card" />
           </Form.Group>
-          <Button variant="success" className="w-100">
-            Proceed to Payment
-          </Button>
+          <Button variant="success" className="w-100" onClick={handleCheckout}>
+  Proceed to Payment
+</Button>
+
         </Form>
       </div>
-      {/* <div className="similar-products-section mt-5 p-4 shadow-sm rounded bg-light">
-        <h3 className="text-center mb-3">Similar Products</h3>
-        <Row className="g-4">
-          {similarProducts.map((product, index) => (
-            <Col key={index} md={4}>
-              <Card className="shadow-sm h-100">
-                <Card.Img
-                  variant="top"
-                  src={`${baseURL}/uploads/${product.image}`}
-                  alt={product.name}
-                  className="p-3"
-                />
-                <Card.Body className="text-center">
-                  <Card.Title>{product.name}</Card.Title>
-                  <Card.Text>₹{product.price}</Card.Text>
-                  <Button variant="primary">Add to Cart</Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      </div> */}
+
     </Container>
   );
 }

@@ -15,6 +15,7 @@ import ProtectedUserRoute from "./ProtectedUserRoute.jsx";
 import UnauthorizedPage from "./UnauthorizedPage.jsx"; // Add the UnauthorizedPage import
 import Cart from "./pages/Cart/Cart.jsx";
 import SingleProduct from "./pages/SingleProduct/SingleProduct.jsx";
+import Orders from "./pages/Cart/Order.jsx";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
         <Route path="/test" element={<Test />} />
         <Route path="/authnew" element={<Authnew />} />
         <Route path="/preloader" element={<Preloader />} />
+        <Route path="/orders" element={<Orders />} />
 
         {/* Unauthorized Route */}
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
