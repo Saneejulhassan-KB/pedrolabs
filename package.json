@@ -1,4 +1,5 @@
 {
+  
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "bcrypt": "^5.1.1",

@@ -94,7 +94,8 @@ function AboutUs() {
 
   return (
     <div>
-      <Header userName={userName} handleLogout={handleLogout} cart={cart}/>
+   <Header userName={userName} handleLogout={handleLogout} cart={cart} />
+
       <img
         src="./about page/Examples_of_Smart_Technology_in_Healthcare_Hero_T_9dc61fc1c8.jpg"
         className="banner-image"
